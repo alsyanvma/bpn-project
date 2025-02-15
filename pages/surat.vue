@@ -5,7 +5,7 @@
             <button @click="toggleForm" class="btn add-button">Tambah Surat</button>
         </div>
 
-        <!-- Form for adding a letter, positioned over the table -->
+        <!-- Form untuk menambah surat -->
         <div v-if="isFormVisible" class="form-container">
             <h2>Tambah Surat</h2>
             <form @submit.prevent="submitForm">
@@ -25,7 +25,7 @@
             </form>
         </div>
 
-        <!-- Display the letter list -->
+        <!-- Daftar surat -->
         <div class="table-container" :style="{ opacity: isFormVisible ? 0.3 : 1 }">
             <table class="table">
                 <thead>
@@ -98,13 +98,15 @@ export default {
 </script>
 
 <style scoped>
+/* Kontainer lebih lebar */
 .container {
-    max-width: 900px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 40px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Header */
 .header {
     display: flex;
     justify-content: space-between;
@@ -116,9 +118,9 @@ export default {
     font-size: 2.4rem;
     font-weight: 600;
     color: #333;
-    margin-bottom: 0;
 }
 
+/* Tombol tambah */
 .add-button {
     padding: 12px 20px;
     background-color: #007BFF;
@@ -134,6 +136,7 @@ export default {
     transform: scale(1.1);
 }
 
+/* Form */
 .form-container {
     position: absolute;
     top: 100px;
@@ -146,7 +149,6 @@ export default {
     z-index: 10;
     width: 80%;
     max-width: 600px;
-    transition: opacity 0.3s ease;
 }
 
 .form-container h2 {
@@ -170,52 +172,22 @@ form input {
     border: 1px solid #ccc;
     border-radius: 8px;
     font-size: 1.1rem;
-    box-sizing: border-box;
-    transition: border-color 0.3s ease;
 }
 
 form input:focus {
     border-color: #007BFF;
 }
 
-form button {
-    padding: 12px 25px;
-    margin-top: 10px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    border-radius: 8px;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-.submit {
-    background-color: #28a745;
-    color: white;
-}
-
-.submit:hover {
-    background-color: #218838;
-    transform: scale(1.05);
-}
-
-.cancel {
-    background-color: #dc3545;
-    color: white;
-    margin-left: 12px;
-}
-
-.cancel:hover {
-    background-color: #c82333;
-    transform: scale(1.05);
-}
-
+/* Table container lebih lebar */
 .table-container {
-    position: relative;
-    transition: opacity 0.3s ease;
+    width: 100%;
+    overflow-x: auto;
 }
 
+/* Table lebih luas */
 .table {
     width: 100%;
+    min-width: 1200px;
     border-collapse: collapse;
     margin-top: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -236,19 +208,12 @@ form button {
     font-weight: 600;
 }
 
-.table-row {
-    transition: all 0.3s ease;
-}
-
 .table-row:hover {
     background-color: #f1f1f1;
     transform: scale(1.02);
 }
 
-.table-row:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
+/* Tombol */
 .btn {
     padding: 10px 18px;
     margin: 5px;
