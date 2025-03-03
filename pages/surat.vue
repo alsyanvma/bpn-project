@@ -1,241 +1,307 @@
 <template>
-    <div class="container">
-        <div class="header">
-            <h1 class="title">Daftar Surat</h1>
-            <button @click="toggleForm" class="btn add-button">Tambah Surat</button>
-        </div>
+  <div class="surat-table-container">
+    <h2>Data Surat</h2>
 
-        <!-- Form untuk menambah surat -->
-        <div v-if="isFormVisible" class="form-container">
-            <h2>Tambah Surat</h2>
-            <form @submit.prevent="submitForm">
-                <label for="first">First Name:</label>
-                <input type="text" v-model="newLetter.first" id="first" required />
+    <!-- Tombol Tambah Surat -->
+    <button @click="openAddSuratPopup" class="add-btn">Tambah Surat</button>
 
-                <label for="last">Last Name:</label>
-                <input type="text" v-model="newLetter.last" id="last" required />
-
-                <label for="handle">Handle:</label>
-                <input type="text" v-model="newLetter.handle" id="handle" required />
-
-                <div class="form-actions">
-                    <button type="submit" class="btn submit">Simpan Surat</button>
-                    <button type="button" @click="toggleForm" class="btn cancel">Batal</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Daftar surat -->
-        <div class="table-container" :style="{ opacity: isFormVisible ? 0.3 : 1 }">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">First Name</th>
-                        <th scope="col">Last Name</th>
-                        <th scope="col">Handle</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(letter, index) in letters" :key="letter.id" class="table-row">
-                        <th scope="row">{{ index + 1 }}</th>
-                        <td>{{ letter.first }}</td>
-                        <td>{{ letter.last }}</td>
-                        <td>{{ letter.handle }}</td>
-                        <td>
-                            <button @click="viewLetter(letter)" class="btn">View</button>
-                            <button @click="deleteLetter(letter.id)" class="btn delete">Delete</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <!-- Pencarian Surat -->
+    <div class="search-container">
+      <input type="text" v-model="searchQuery" placeholder="Cari Surat..." @input="filterSurat" class="search-input" />
     </div>
+
+    <!-- Popup Form untuk Menambah Surat -->
+    <div v-if="showSuratPopup" class="popup-overlay" @click="closeSuratPopup">
+      <div class="popup-container" @click.stop>
+        <h3>{{ editSuratData.value ? 'Edit Surat' : 'Tambah Surat' }}</h3>
+        <form @submit.prevent="submitSuratForm">
+          <div class="form-group">
+            <label for="suratNoSurat">No Surat:</label>
+            <input type="text" id="suratNoSurat" v-model="editSuratData.value.no_surat" required />
+          </div>
+
+          <div class="form-group">
+            <label for="suratNamaPetugas">Nama Petugas:</label>
+            <input type="text" id="suratNamaPetugas" v-model="editSuratData.value.nama_petugas" required />
+          </div>
+
+          <div class="form-group">
+            <label for="suratNoBerkas">No Berkas:</label>
+            <input type="text" id="suratNoBerkas" v-model="editSuratData.value.no_berkas" readonly />
+          </div>
+
+          <div class="form-group">
+            <label for="suratNamaPemohon">Nama Pemohon:</label>
+            <input type="text" id="suratNamaPemohon" v-model="editSuratData.value.nama_pemohon" required />
+          </div>
+
+          <div class="form-group">
+            <label for="suratJenisPermohonan">Jenis Permohonan:</label>
+            <input type="text" id="suratJenisPermohonan" v-model="editSuratData.value.jenis_permohonan" required />
+          </div>
+
+          <div class="form-group">
+            <label for="suratNo302">No 302:</label>
+            <input type="number" id="suratNo302" v-model="editSuratData.value.no_302" required />
+          </div>
+
+          <div class="form-group">
+            <label for="suratTanggal">Tanggal:</label>
+            <input type="date" id="suratTanggal" v-model="editSuratData.value.tanggal" required />
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="submit-btn">Simpan</button>
+            <button type="button" class="cancel-btn" @click="closeSuratPopup">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="surat-table">
+        <thead>
+          <tr>
+            <th>No Surat</th>
+            <th>No Berkas</th>
+            <th>Nama Pemohon</th>
+            <th>Jenis Permohonan</th>
+            <th>No 302</th>
+            <th>Tanggal</th>
+            <th>Nama Petugas</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(surat, index) in filteredSuratList" :key="surat.no_surat">
+            <td>{{ surat.no_surat }}</td>
+            <td>{{ surat.no_berkas }}</td>
+            <td>{{ surat.nama_pemohon }}</td>
+            <td>{{ surat.jenis_permohonan }}</td>
+            <td>{{ surat.no_302 }}</td>
+            <td>{{ surat.tanggal }}</td>
+            <td>{{ surat.nama_petugas }}</td>
+            <td>
+              <button @click="editSurat(surat)" class="edit-btn">Edit</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </template>
 
-<script>
-export default {
-    name: 'SuratPage',
-    data() {
-        return {
-            letters: [
-                { id: 1, first: 'Mark', last: 'Otto', handle: '@mdo' },
-                { id: 2, first: 'Jacob', last: 'Thornton', handle: '@fat' },
-                { id: 3, first: 'Larry', last: 'the Bird', handle: '@twitter' },
-            ],
-            isFormVisible: false,
-            newLetter: {
-                first: '',
-                last: '',
-                handle: ''
-            }
-        };
-    },
-    methods: {
-        toggleForm() {
-            this.isFormVisible = !this.isFormVisible;
-        },
-        viewLetter(letter) {
-            alert(`Viewing letter from: ${letter.first} ${letter.last}`);
-        },
-        deleteLetter(id) {
-            alert(`Deleted letter with ID: ${id}`);
-        },
-        submitForm() {
-            const newId = this.letters.length + 1;
-            this.letters.push({
-                id: newId,
-                ...this.newLetter
-            });
-            this.newLetter.first = '';
-            this.newLetter.last = '';
-            this.newLetter.handle = '';
-            this.toggleForm();
-        }
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useSupabaseClient } from '@supabase/auth-helpers-vue';
+
+const $supabase = useSupabaseClient();
+const suratList = ref([]);
+const loketList = ref([]);
+const newSurat = ref({
+  no_berkas: '',
+  nama_pemohon: '',
+  jenis_permohonan: '',
+  no_302: '',
+  tanggal: '',
+  no_surat: ''
+});
+const editingSurat = ref(null);
+
+onMounted(async () => {
+  await fetchData();
+});
+
+async function fetchData() {
+  try {
+    const { data: formSuratData } = await $supabase.from('form_surat').select('*');
+    suratList.value = formSuratData || [];
+
+    const { data: loketData } = await $supabase.from('loket_sp').select('*');
+    loketList.value = loketData || [];
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+}
+
+async function saveSurat() {
+  try {
+    // Cek apakah no_berkas sudah ada di loket_sp
+    let { data: loketExist } = await $supabase
+      .from('loket_sp')
+      .select('*')
+      .eq('no_berkas', newSurat.value.no_berkas);
+
+    let loketId;
+    if (loketExist.length === 0) {
+      // Simpan ke loket_sp jika belum ada
+      const { data: loketData, error: loketError } = await $supabase
+        .from('loket_sp')
+        .insert([{
+          no_berkas: newSurat.value.no_berkas,
+          nama_pemohon: newSurat.value.nama_pemohon,
+          jenis: newSurat.value.jenis_permohonan,
+          no_302: newSurat.value.no_302,
+          tanggal: newSurat.value.tanggal
+        }])
+        .select();
+      
+      if (loketError) throw loketError;
+      loketId = loketData[0].id;
+    } else {
+      loketId = loketExist[0].id;
     }
-};
+
+    // Simpan ke form_surat
+    const { error: suratError } = await $supabase.from('form_surat').insert([{
+      no_surat: newSurat.value.no_surat,
+      nama_pemohon: newSurat.value.nama_pemohon,
+      loket_sp_id: loketId
+    }]);
+
+    if (suratError) throw suratError;
+    
+    alert('Data berhasil disimpan!');
+    newSurat.value = { no_berkas: '', nama_pemohon: '', jenis_permohonan: '', no_302: '', tanggal: '', no_surat: '' };
+    await fetchData();
+  } catch (error) {
+    console.error('Error saving surat:', error);
+  }
+}
 </script>
-
 <style scoped>
-/* Kontainer lebih lebar */
-.container {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 40px;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+/* Styling for the component */
+.surat-table-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-/* Header */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2c3e50;
 }
 
-.title {
-    font-size: 2.4rem;
-    font-weight: 600;
-    color: #333;
+.add-btn {
+  display: block;
+  width: 180px;
+  margin: 20px auto;
+  padding: 12px;
+  background-color: #e67e22;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-/* Tombol tambah */
-.add-button {
-    padding: 12px 20px;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
+.search-container {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-.add-button:hover {
-    background-color: #0056b3;
-    transform: scale(1.1);
+.search-input {
+  padding: 10px;
+  width: 300px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
 
-/* Form */
-.form-container {
-    position: absolute;
-    top: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 30px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    width: 80%;
-    max-width: 600px;
+.table-wrapper {
+  overflow-x: auto;
 }
 
-.form-container h2 {
-    margin-bottom: 20px;
-    font-size: 1.8rem;
-    color: #333;
+.surat-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
 }
 
-form label {
-    display: block;
-    margin-top: 20px;
-    font-size: 1.1rem;
-    color: #555;
+.surat-table th,
+.surat-table td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
 }
 
-form input {
-    width: 100%;
-    padding: 14px;
-    margin-top: 8px;
-    margin-bottom: 18px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 1.1rem;
+.surat-table th {
+  background-color: #f2f2f2;
 }
 
-form input:focus {
-    border-color: #007BFF;
+.surat-table tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
-/* Table container lebih lebar */
-.table-container {
-    width: 100%;
-    overflow-x: auto;
+.edit-btn {
+  background-color: #3498db;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
-/* Table lebih luas */
-.table {
-    width: 100%;
-    min-width: 1200px;
-    border-collapse: collapse;
-    margin-top: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    background-color: #ffffff;
-    border-radius: 8px;
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.table th,
-.table td {
-    padding: 15px;
-    text-align: left;
-    font-size: 1.1rem;
-    color: #333;
+.popup-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 500px;
 }
 
-.table th {
-    background-color: #f4f4f4;
-    font-weight: 600;
+form {
+  display: flex;
+  flex-direction: column;
 }
 
-.table-row:hover {
-    background-color: #f1f1f1;
-    transform: scale(1.02);
+.form-group {
+  margin-bottom: 15px;
 }
 
-/* Tombol */
-.btn {
-    padding: 10px 18px;
-    margin: 5px;
-    border: none;
-    cursor: pointer;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 8px;
-    transition: background-color 0.3s ease, transform 0.3s ease;
+.form-group label {
+  font-weight: bold;
+  margin-bottom: 5px;
 }
 
-.btn:hover {
-    background-color: #0056b3;
-    transform: scale(1.05);
+.form-group input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
 }
 
-.delete {
-    background-color: #dc3545;
+.submit-btn,
+.cancel-btn {
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
-.delete:hover {
-    background-color: #c82333;
-    transform: scale(1.05);
+.submit-btn {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
 }
 </style>

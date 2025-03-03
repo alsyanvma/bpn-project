@@ -18,13 +18,12 @@
                         <nuxt-link class="nav-link" to="/">Beranda</nuxt-link>
                     </li>
                     <li class="nav-item">
+                        <nuxt-link class="nav-link" to="/loket">Loket</nuxt-link>
+                    </li>
+                    <li class="nav-item">
                         <nuxt-link class="nav-link" to="/surat">Form Surat</nuxt-link>
                     </li>
                     <li class="nav-item">
-                        <nuxt-link class="nav-link" to="/loket">Loket SP</nuxt-link>
-                    </li>
-                    <li class="nav-item">
-                        <nuxt-link class="nav-link" to="/riwayat">Riwayat</nuxt-link>
                     </li>
                 </ul>
             </div>

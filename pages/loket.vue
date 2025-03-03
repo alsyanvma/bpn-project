@@ -1,256 +1,373 @@
 <template>
-    <div class="container">
-      <div class="header">
-        <h1 class="title">Daftar Loket Surat</h1>
-        <button @click="toggleForm" class="btn add-button">Tambah Loket</button>
-      </div>
-  
-      <!-- Form Tambah Loket -->
-      <div v-if="isFormVisible" class="form-container">
-        <h2>Tambah Loket</h2>
-        <form @submit.prevent="submitForm">
-          <label for="no_erkas">No Erkas:</label>
-          <input type="text" v-model="newLoket.no_erkas" id="no_erkas" required />
-  
-          <label for="pengirim">Nama Pengirim:</label>
-          <input type="text" v-model="newLoket.pengirim" id="pengirim" required />
-  
-          <label for="jenis_surat">Jenis Surat:</label>
-          <input type="text" v-model="newLoket.jenis_surat" id="jenis_surat" required />
-  
-          <label for="tanggal_surat">Tanggal Surat:</label>
-          <input type="date" v-model="newLoket.tanggal_surat" id="tanggal_surat" required />
-  
+  <div class="loket-table-container">
+    <h2>Data Loket SP</h2>
+
+    <!-- Tombol Tambah Loket -->
+    <button @click="openAddLoketPopup" class="add-btn">Tambah Loket</button>
+
+    <!-- Pencarian Loket -->
+    <div class="search-container">
+      <input type="text" v-model="searchQuery" placeholder="Cari Loket..." @input="filterLoket" class="search-input"/>
+    </div>
+
+    <!-- Popup Form untuk Menambah Loket -->
+    <div v-if="showLoketPopup" class="popup-overlay" @click="closeLoketPopup">
+      <div class="popup-container" @click.stop>
+        <h3>Tambah Loket</h3>
+        <form @submit.prevent="submitLoketForm">
+          <div class="form-group">
+            <label for="loketFileNumber">No Berkas:</label>
+            <input type="text" id="loketFileNumber" v-model="newLoket.no_berkas" required />
+          </div>
+
+          <div class="form-group">
+            <label for="loketApplicantName">Nama Pemohon:</label>
+            <input type="text" id="loketApplicantName" v-model="newLoket.nama_pemohon" required />
+          </div>
+
+          <div class="form-group">
+            <label for="loketRequestType">Jenis Permohonan:</label>
+            <input type="text" id="loketRequestType" v-model="newLoket.jenis_permohonan" required />
+          </div>
+
+          <div class="form-group">
+            <label for="loketNo302">No 302:</label>
+            <input type="text" id="loketNo302" v-model="newLoket.no302" required />
+          </div>
+
+          <div class="form-group">
+            <label for="loketDate302">Tanggal:</label>
+            <input type="date" id="loketDate302" v-model="newLoket.tanggal" required />
+          </div>
+
           <div class="form-actions">
-            <button type="submit" class="btn submit">Simpan</button>
-            <button type="button" @click="toggleForm" class="btn cancel">Batal</button>
+            <button type="submit" class="submit-btn">Simpan</button>
+            <button type="button" class="cancel-btn" @click="closeLoketPopup">Batal</button>
           </div>
         </form>
       </div>
-  
-      <!-- Tabel Loket -->
-      <div class="table-container" :style="{ opacity: isFormVisible ? 0.3 : 1 }">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>No Erkas</th>
-              <th>Nama Pengirim</th>
-              <th>Jenis Surat</th>
-              <th>Tanggal Surat</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(loket, index) in lokets" :key="loket.id" class="table-row">
-              <th scope="row">{{ index + 1 }}</th>
-              <td>{{ loket.no_erkas }}</td>
-              <td>{{ loket.pengirim }}</td>
-              <td>{{ loket.jenis_surat }}</td>
-              <td>{{ loket.tanggal_surat }}</td>
-              <td>
-                <button @click="editLoket(loket)" class="btn">Edit</button>
-                <button @click="deleteLoket(loket.id)" class="btn delete">Hapus</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'LoketPage',
-    data() {
-      return {
-        lokets: [
-          { id: 1, no_erkas: '12345', pengirim: 'Budi Santoso', jenis_surat: 'Resmi', tanggal_surat: '2025-02-01' },
-          { id: 2, no_erkas: '67890', pengirim: 'Siti Aisyah', jenis_surat: 'Penting', tanggal_surat: '2025-02-05' }
-        ],
-        isFormVisible: false,
-        newLoket: {
-          no_erkas: '',
-          pengirim: '',
-          jenis_surat: '',
-          tanggal_surat: ''
-        }
-      };
-    },
-    methods: {
-      toggleForm() {
-        this.isFormVisible = !this.isFormVisible;
-      },
-      submitForm() {
-        const newId = this.lokets.length + 1;
-        this.lokets.push({
-          id: newId,
-          ...this.newLoket
-        });
-        this.newLoket = { no_erkas: '', pengirim: '', jenis_surat: '', tanggal_surat: '' };
-        this.toggleForm();
-      },
-      editLoket(loket) {
-        this.newLoket = { ...loket };
-        this.isFormVisible = true;
-      },
-      deleteLoket(id) {
-        this.lokets = this.lokets.filter(loket => loket.id !== id);
-      }
+
+    <div class="table-wrapper">
+      <table class="loket-table">
+        <thead>
+          <tr>
+            <th>No Berkas</th>
+            <th>Nama Pemohon</th>
+            <th>Jenis Permohonan</th>
+            <th>No 302</th>
+            <th>Tanggal</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(loket, index) in filteredLoketList" :key="loket.fileNumber">
+            <td>{{ loket.no_berkas }}</td>
+            <td>{{ loket.nama_pemohon }}</td>
+            <td>{{ loket.jenis_permohonan }}</td>
+            <td>{{ loket.no302 }}</td>
+            <td>{{ loket.tanggal }}</td>
+            <td>
+              <button @click="editLoket(index)" class="edit-btn">Edit</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+
+const loketList = ref([]);
+const filteredLoketList = ref([]);
+const searchQuery = ref('');
+const showLoketPopup = ref(false);
+const newLoket = ref({
+  no_berkas: 0, // set initial value to 0 for numbers
+  nama_pemohon: '',
+  jenis_permohonan: '',
+  no302: 0, // set initial value to 0 for numbers
+  tanggal: ''
+});
+
+
+// Mengakses Supabase
+const { $supabase } = useNuxtApp();
+
+onMounted(async () => {
+  try {
+    const { data, error } = await $supabase
+      .from('loket_sp')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching data:', error);
+    } else {
+      loketList.value = data;
+      filterLoket();
     }
+  } catch (error) {
+    console.error("Error during fetch:", error);
+  }
+});
+
+const submitLoketForm = async () => {
+  try {
+    // Insert into loket_sp table
+    const { data: loketData, error: loketError } = await $supabase
+      .from('loket_sp')
+      .insert([{
+        no_berkas: newLoket.value.no_berkas,  // Ensure these are numbers
+        nama_pemohon: newLoket.value.nama_pemohon,
+        jenis_permohonan: newLoket.value.jenis_permohonan,
+        no302: newLoket.value.no302,  // Ensure this is a number
+        tanggal: newLoket.value.tanggal
+      }]);
+
+    if (loketError) {
+      console.error('Error inserting into loket_sp:', loketError);
+      alert('Terjadi kesalahan saat menyimpan data ke loket_sp');
+      return;
+    }
+
+    // Insert into form_surat table
+    const { data: suratData, error: suratError } = await $supabase
+      .from('form_surat')
+      .insert([{
+        loket_sp_id: loketData[0].id,  // Assuming the 'loket_sp' table has an 'id' column
+        no_surat: '',  // Add logic to set surat number if needed
+        nama_petugas: '',  // Add logic to set petugas name if needed
+        created_at: new Date().toISOString()  // Timestamp or any other field you need
+      }]);
+
+    if (suratError) {
+      console.error('Error inserting into form_surat:', suratError);
+      alert('Terjadi kesalahan saat menyimpan data ke form_surat');
+      return;
+    }
+
+    // Add the new loket data to the table
+    loketList.value.push(loketData[0]);
+    filterLoket();
+    closeLoketPopup();
+    clearNewLoketForm();
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    alert('Terjadi kesalahan saat menyimpan data');
+  }
+};
+
+
+const filterLoket = () => {
+  const query = searchQuery.value.toLowerCase();
+  filteredLoketList.value = loketList.value.filter(loket => {
+    return (
+      loket.no_berkas.toLowerCase().includes(query) ||
+      loket.nama_pemohon.toLowerCase().includes(query) ||
+      loket.jenis_permohonan.toLowerCase().includes(query) ||
+      loket.no302.toLowerCase().includes(query)
+    );
+  });
+};
+
+const openAddLoketPopup = () => {
+  showLoketPopup.value = true;
+};
+
+const closeLoketPopup = () => {
+  showLoketPopup.value = false;
+};
+
+const clearNewLoketForm = () => {
+  newLoket.value = {
+    no_berkas: '',
+    nama_pemohon: '',
+    jenis_permohonan: '',
+    no302: '',
+    tanggal: ''
   };
-  </script>
-  
-  <style scoped>
-  .container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 40px;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-  }
-  
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  }
-  
-  .title {
-    font-size: 2.4rem;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .add-button {
-    padding: 12px 20px;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
-  }
-  
-  .add-button:hover {
-    background-color: #0056b3;
-    transform: scale(1.1);
-  }
-  
-  .form-container {
-    position: absolute;
-    top: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 30px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    width: 80%;
-    max-width: 600px;
-  }
-  
-  form label {
-    display: block;
-    margin-top: 20px;
-    font-size: 1.1rem;
-    color: #555;
-  }
-  
-  form input {
-    width: 100%;
-    padding: 14px;
-    margin-top: 8px;
-    margin-bottom: 18px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    box-sizing: border-box;
-  }
-  
-  form button {
-    padding: 12px 25px;
-    margin-top: 10px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    border-radius: 8px;
-  }
-  
-  .submit {
-    background-color: #28a745;
-    color: white;
-  }
-  
-  .submit:hover {
-    background-color: #218838;
-    transform: scale(1.05);
-  }
-  
-  .cancel {
-    background-color: #dc3545;
-    color: white;
-    margin-left: 12px;
-  }
-  
-  .cancel:hover {
-    background-color: #c82333;
-    transform: scale(1.05);
-  }
-  
-  .table-container {
-    position: relative;
-  }
-  
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  }
-  
-  .table th, .table td {
-    padding: 15px;
-    text-align: left;
-    font-size: 1.1rem;
-    color: #333;
-  }
-  
-  .table th {
-    background-color: #f4f4f4;
-    font-weight: 600;
-  }
-  
-  .table-row:hover {
-    background-color: #f1f1f1;
-    transform: scale(1.02);
-  }
-  
-  .btn {
-    padding: 10px 18px;
-    margin: 5px;
-    border: none;
-    cursor: pointer;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 8px;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-  }
-  
-  .btn:hover {
-    background-color: #0056b3;
-    transform: scale(1.05);
-  }
-  
-  .delete {
-    background-color: #dc3545;
-  }
-  
-  .delete:hover {
-    background-color: #c82333;
-  }
-  </style>
-  
+};
+</script>
+
+
+
+<style scoped>
+.loket-table-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-family: 'Roboto', sans-serif;
+}
+
+.add-btn {
+  display: block;
+  width: 180px;
+  margin: 20px auto;
+  padding: 12px;
+  background-color: #e67e22;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.add-btn:hover {
+  background-color: #d35400;
+}
+
+.search-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  padding: 10px;
+  width: 300px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.loket-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loket-table th,
+.loket-table td {
+  padding: 12px 15px;
+  text-align: left;
+}
+
+.loket-table th {
+  background-color: #e67e22;
+  color: white;
+  font-weight: bold;
+}
+
+.loket-table td {
+  background-color: #ecf0f1;
+}
+
+.loket-table tr:nth-child(even) td {
+  background-color: #f9f9f9;
+}
+
+.loket-table tr:hover td {
+  background-color: #f5b041;
+  cursor: pointer;
+}
+
+.loket-table td {
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+.edit-btn {
+  padding: 6px 12px;
+  font-size: 14px;
+  background-color: #f39c12;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.edit-btn:hover {
+  background-color: #e67e22;
+}
+
+/* Popup Styling */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 400px;
+  max-width: 100%;
+}
+
+.popup-container h3 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.form-actions {
+  text-align: center;
+}
+
+.submit-btn, .cancel-btn {
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  margin: 5px;
+}
+
+.submit-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+}
+
+.submit-btn:hover {
+  background-color: #2980b9;
+}
+
+.cancel-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+}
+
+.cancel-btn:hover {
+  background-color: #c0392b;
+}
+</style>
