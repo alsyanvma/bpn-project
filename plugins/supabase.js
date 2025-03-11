@@ -1,22 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-export default defineNuxtPlugin(nuxtApp => {
-  // Mengambil URL dan Key Supabase dari config
-  const supabaseUrl = nuxtApp.$config.public.SUPABASE_URL;
-  const supabaseKey = nuxtApp.$config.public.SUPABASE_KEY;
+const supabaseUrl = 'https://wkdrasssmmjpchxsgdua.supabase.co'; // Ganti dengan URL Supabase Anda
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZHJhc3NzbW1qcGNoeHNnZHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0Njg0NjQsImV4cCI6MjA1NjA0NDQ2NH0.eOZPhW3JchXxrUSBDYCEwuZeDJ9ulrKBJvr75svxHy8'; // Ganti dengan kunci Anon Anda
 
-  // Mengecek apakah URL dan Key Supabase tersedia
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('Supabase URL or Key is missing!');
-    return;
-  }
-
-  // Membuat instance Supabase
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  // Menyuntikkan instance Supabase ke dalam aplikasi
-  nuxtApp.provide('supabase', supabase);
-
-  // Optional: Log untuk memastikan Supabase telah ter-inject dengan benar
-  console.log('Supabase client initialized');
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export default supabase; // ✅ Pastikan ekspor sebagai default

@@ -2,52 +2,29 @@
   <div class="surat-table-container">
     <h2>Data Surat</h2>
 
-    <!-- Tombol Tambah Surat -->
-    <button @click="openAddSuratPopup" class="add-btn">Tambah Surat</button>
-
-    <!-- Pencarian Surat -->
+    <!-- 🔍 Input Pencarian -->
     <div class="search-container">
-      <input type="text" v-model="searchQuery" placeholder="Cari Surat..." @input="filterSurat" class="search-input" />
+      <input
+        type="text"
+        v-model.trim="searchQuery"
+        placeholder="Cari Surat..."
+        class="search-input"
+      />
     </div>
 
-    <!-- Popup Form untuk Menambah Surat -->
+    <!-- 📝 Popup Edit Surat -->
     <div v-if="showSuratPopup" class="popup-overlay" @click="closeSuratPopup">
-      <div class="popup-container" @click.stop>
-        <h3>{{ editSuratData.value ? 'Edit Surat' : 'Tambah Surat' }}</h3>
+      <div class="popup-container animate-popup" @click.stop>
+        <h3>Edit Surat</h3>
         <form @submit.prevent="submitSuratForm">
           <div class="form-group">
-            <label for="suratNoSurat">No Surat:</label>
-            <input type="text" id="suratNoSurat" v-model="editSuratData.value.no_surat" required />
+            <label for="loketNoSurat">No Surat:</label>
+            <input type="text" id="loketNoSurat" v-model="editData.no_surat" required />
           </div>
 
           <div class="form-group">
-            <label for="suratNamaPetugas">Nama Petugas:</label>
-            <input type="text" id="suratNamaPetugas" v-model="editSuratData.value.nama_petugas" required />
-          </div>
-
-          <div class="form-group">
-            <label for="suratNoBerkas">No Berkas:</label>
-            <input type="text" id="suratNoBerkas" v-model="editSuratData.value.no_berkas" readonly />
-          </div>
-
-          <div class="form-group">
-            <label for="suratNamaPemohon">Nama Pemohon:</label>
-            <input type="text" id="suratNamaPemohon" v-model="editSuratData.value.nama_pemohon" required />
-          </div>
-
-          <div class="form-group">
-            <label for="suratJenisPermohonan">Jenis Permohonan:</label>
-            <input type="text" id="suratJenisPermohonan" v-model="editSuratData.value.jenis_permohonan" required />
-          </div>
-
-          <div class="form-group">
-            <label for="suratNo302">No 302:</label>
-            <input type="number" id="suratNo302" v-model="editSuratData.value.no_302" required />
-          </div>
-
-          <div class="form-group">
-            <label for="suratTanggal">Tanggal:</label>
-            <input type="date" id="suratTanggal" v-model="editSuratData.value.tanggal" required />
+            <label for="loketNamaPetugas">Nama Petugas:</label>
+            <input type="text" id="loketNamaPetugas" v-model="editData.nama_petugas" required />
           </div>
 
           <div class="form-actions">
@@ -58,8 +35,9 @@
       </div>
     </div>
 
+    <!-- 📋 Tabel Surat -->
     <div class="table-wrapper">
-      <table class="surat-table">
+      <table class="loket-table">
         <thead>
           <tr>
             <th>No Surat</th>
@@ -69,20 +47,20 @@
             <th>No 302</th>
             <th>Tanggal</th>
             <th>Nama Petugas</th>
-            <th>Actions</th>
+            <th>Aksi</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(surat, index) in filteredSuratList" :key="surat.no_surat">
-            <td>{{ surat.no_surat }}</td>
-            <td>{{ surat.no_berkas }}</td>
-            <td>{{ surat.nama_pemohon }}</td>
-            <td>{{ surat.jenis_permohonan }}</td>
-            <td>{{ surat.no_302 }}</td>
-            <td>{{ surat.tanggal }}</td>
-            <td>{{ surat.nama_petugas }}</td>
+          <tr v-for="(loket, index) in filteredSuratList" :key="index">
+            <td>{{ loket.no_surat || '-' }}</td>
+            <td>{{ loket.no_berkas }}</td>
+            <td>{{ loket.nama_pemohon }}</td>
+            <td>{{ loket.jenis_permohonan }}</td>
+            <td>{{ loket.no302 || '-' }}</td>
+            <td>{{ loket.tanggal }}</td>
+            <td>{{ loket.nama_petugas || '-' }}</td>
             <td>
-              <button @click="editSurat(surat)" class="edit-btn">Edit</button>
+              <button @click="editSurat(loket)" class="edit-btn">Edit</button>
             </td>
           </tr>
         </tbody>
@@ -92,85 +70,79 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useSupabaseClient } from '@supabase/auth-helpers-vue';
+import { ref, onMounted, computed } from 'vue';
+import { supabase } from '@/plugins/supabase';
 
-const $supabase = useSupabaseClient();
-const suratList = ref([]);
 const loketList = ref([]);
-const newSurat = ref({
-  no_berkas: '',
-  nama_pemohon: '',
-  jenis_permohonan: '',
-  no_302: '',
-  tanggal: '',
-  no_surat: ''
-});
-const editingSurat = ref(null);
+const searchQuery = ref('');
+const showSuratPopup = ref(false);
+const editData = ref({ no_surat: '', nama_petugas: '', no_berkas: '' });
 
-onMounted(async () => {
-  await fetchData();
-});
-
-async function fetchData() {
+const fetchLoket = async () => {
   try {
-    const { data: formSuratData } = await $supabase.from('form_surat').select('*');
-    suratList.value = formSuratData || [];
-
-    const { data: loketData } = await $supabase.from('loket_sp').select('*');
-    loketList.value = loketData || [];
+    const { data, error } = await supabase.from('loket').select('*');
+    if (error) throw error;
+    loketList.value = data || [];
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('Error fetching loket:', error);
   }
-}
+};
+onMounted(fetchLoket);
 
-async function saveSurat() {
+// 🔍 Filter Pencarian Real-Time
+const filteredSuratList = computed(() => {
+  return loketList.value.filter(loket => {
+    return Object.values(loket).some(val =>
+      String(val).toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
+  });
+});
+
+// ✏ Edit Surat (Buka Popup)
+const editSurat = (loket) => {
+  editData.value = {
+    no_surat: loket.no_surat || '',
+    nama_petugas: loket.nama_petugas || '',
+    no_berkas: loket.no_berkas
+  };
+  showSuratPopup.value = true;
+};
+
+// ❌ Tutup Popup
+const closeSuratPopup = () => {
+  showSuratPopup.value = false;
+};
+
+// ✅ Simpan Perubahan ke Supabase
+const submitSuratForm = async () => {
   try {
-    // Cek apakah no_berkas sudah ada di loket_sp
-    let { data: loketExist } = await $supabase
-      .from('loket_sp')
-      .select('*')
-      .eq('no_berkas', newSurat.value.no_berkas);
+    const { error } = await supabase
+      .from('loket')
+      .update({
+        no_surat: editData.value.no_surat,
+        nama_petugas: editData.value.nama_petugas
+      })
+      .eq('no_berkas', editData.value.no_berkas);
 
-    let loketId;
-    if (loketExist.length === 0) {
-      // Simpan ke loket_sp jika belum ada
-      const { data: loketData, error: loketError } = await $supabase
-        .from('loket_sp')
-        .insert([{
-          no_berkas: newSurat.value.no_berkas,
-          nama_pemohon: newSurat.value.nama_pemohon,
-          jenis: newSurat.value.jenis_permohonan,
-          no_302: newSurat.value.no_302,
-          tanggal: newSurat.value.tanggal
-        }])
-        .select();
-      
-      if (loketError) throw loketError;
-      loketId = loketData[0].id;
-    } else {
-      loketId = loketExist[0].id;
+    if (error) throw error;
+
+    // 🔄 Update tabel tanpa reload
+    const index = loketList.value.findIndex(item => item.no_berkas === editData.value.no_berkas);
+    if (index !== -1) {
+      loketList.value[index].no_surat = editData.value.no_surat;
+      loketList.value[index].nama_petugas = editData.value.nama_petugas;
     }
 
-    // Simpan ke form_surat
-    const { error: suratError } = await $supabase.from('form_surat').insert([{
-      no_surat: newSurat.value.no_surat,
-      nama_pemohon: newSurat.value.nama_pemohon,
-      loket_sp_id: loketId
-    }]);
-
-    if (suratError) throw suratError;
-    
-    alert('Data berhasil disimpan!');
-    newSurat.value = { no_berkas: '', nama_pemohon: '', jenis_permohonan: '', no_302: '', tanggal: '', no_surat: '' };
-    await fetchData();
+    alert('Data berhasil diperbarui!');
+    closeSuratPopup();
   } catch (error) {
-    console.error('Error saving surat:', error);
+    console.error('Error updating data:', error);
+    alert('Terjadi kesalahan saat menyimpan data');
   }
-}
+};
 </script>
+
 <style scoped>
-/* Styling for the component */
 .surat-table-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -179,22 +151,10 @@ async function saveSurat() {
 
 h2 {
   text-align: center;
-  margin-bottom: 20px;
   color: #2c3e50;
 }
 
-.add-btn {
-  display: block;
-  width: 180px;
-  margin: 20px auto;
-  padding: 12px;
-  background-color: #e67e22;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
+/* 🔍 Search Bar */
 .search-container {
   text-align: center;
   margin-bottom: 20px;
@@ -207,40 +167,41 @@ h2 {
   border: 1px solid #ccc;
 }
 
+/* 📋 Table */
 .table-wrapper {
   overflow-x: auto;
 }
 
-.surat-table {
+.loket-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 
-.surat-table th,
-.surat-table td {
-  padding: 12px;
+.loket-table th, .loket-table td {
+  padding: 10px;
   text-align: left;
   border: 1px solid #ddd;
 }
 
-.surat-table th {
-  background-color: #f2f2f2;
-}
-
-.surat-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.edit-btn {
-  background-color: #3498db;
+.loket-table th {
+  background-color: #e67e22;
   color: white;
-  padding: 6px 12px;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
 }
 
+/* ✏ Tombol Edit */
+.edit-btn {
+  padding: 6px 12px;
+  background-color: #f39c12;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.edit-btn:hover {
+  background-color: #e67e22;
+}
+
+/* 📝 Popup Edit */
 .popup-overlay {
   position: fixed;
   top: 0;
@@ -257,51 +218,46 @@ h2 {
   background-color: white;
   padding: 20px;
   border-radius: 8px;
-  width: 500px;
+  width: 400px;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-form {
-  display: flex;
-  flex-direction: column;
+/* ✨ Animasi Popup */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.form-group input {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  width: 100%;
-}
-
-.submit-btn,
-.cancel-btn {
-  padding: 10px;
+/* ✅ Tombol Simpan & Batal */
+.submit-btn {
+  background-color: #27ae60;
+  color: white;
+  padding: 8px 12px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  margin-top: 10px;
 }
 
-.submit-btn {
+.submit-btn:hover {
   background-color: #2ecc71;
-  color: white;
 }
 
 .cancel-btn {
   background-color: #e74c3c;
   color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: space-between;
+.cancel-btn:hover {
+  background-color: #c0392b;
 }
 </style>

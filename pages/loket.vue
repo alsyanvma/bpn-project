@@ -3,7 +3,7 @@
     <h2>Data Loket SP</h2>
 
     <!-- Tombol Tambah Loket -->
-    <button @click="openAddLoketPopup" class="add-btn">Tambah Loket</button>
+    <button @click="openLoketPopup" class="add-btn">Tambah Loket</button>
 
     <!-- Pencarian Loket -->
     <div class="search-container">
@@ -12,7 +12,7 @@
 
     <!-- Popup Form untuk Menambah Loket -->
     <div v-if="showLoketPopup" class="popup-overlay" @click="closeLoketPopup">
-      <div class="popup-container" @click.stop>
+  <div class="popup-container" @click.stop>
         <h3>Tambah Loket</h3>
         <form @submit.prevent="submitLoketForm">
           <div class="form-group">
@@ -61,14 +61,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(loket, index) in filteredLoketList" :key="loket.fileNumber">
+          <tr v-for="(loket, index) in filteredLoketList" :key="loket.id">
             <td>{{ loket.no_berkas }}</td>
             <td>{{ loket.nama_pemohon }}</td>
             <td>{{ loket.jenis_permohonan }}</td>
             <td>{{ loket.no302 }}</td>
             <td>{{ loket.tanggal }}</td>
             <td>
-              <button @click="editLoket(index)" class="edit-btn">Edit</button>
+              <button @click="editLoket(loket)" class="edit-btn">Edit</button>
+              <button @click="deleteLoket(loket.id)" class="delete-btn">Hapus</button>
             </td>
           </tr>
         </tbody>
@@ -79,100 +80,114 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { supabase } from '@/plugins/supabase'; // Pastikan path benar
 
 const loketList = ref([]);
 const filteredLoketList = ref([]);
 const searchQuery = ref('');
 const showLoketPopup = ref(false);
+const showEditPopup = ref(false);
+
 const newLoket = ref({
-  no_berkas: 0, // set initial value to 0 for numbers
+  id: null, // Tambahkan id untuk edit
+  no_berkas: '',
   nama_pemohon: '',
   jenis_permohonan: '',
-  no302: 0, // set initial value to 0 for numbers
+  no302: '',
   tanggal: ''
 });
 
-
-// Mengakses Supabase
-const { $supabase } = useNuxtApp();
-
-onMounted(async () => {
+// Fetch Data Loket
+const fetchLoket = async () => {
   try {
-    const { data, error } = await $supabase
-      .from('loket_sp')
-      .select('*');
-    
-    if (error) {
-      console.error('Error fetching data:', error);
-    } else {
-      loketList.value = data;
-      filterLoket();
-    }
+    const { data, error } = await supabase.from('loket').select('*');
+    if (error) throw error;
+    loketList.value = data || [];
+    filterLoket();
   } catch (error) {
-    console.error("Error during fetch:", error);
+    console.error('Error fetching loket:', error);
   }
-});
+};
 
+// Fetch data saat komponen dimuat
+onMounted(fetchLoket);
+
+// Fungsi Tambah/Edit Loket
 const submitLoketForm = async () => {
   try {
-    // Insert into loket_sp table
-    const { data: loketData, error: loketError } = await $supabase
-      .from('loket_sp')
-      .insert([{
-        no_berkas: newLoket.value.no_berkas,  // Ensure these are numbers
-        nama_pemohon: newLoket.value.nama_pemohon,
-        jenis_permohonan: newLoket.value.jenis_permohonan,
-        no302: newLoket.value.no302,  // Ensure this is a number
-        tanggal: newLoket.value.tanggal
-      }]);
-
-    if (loketError) {
-      console.error('Error inserting into loket_sp:', loketError);
-      alert('Terjadi kesalahan saat menyimpan data ke loket_sp');
+    if (!newLoket.value.no_berkas || !newLoket.value.nama_pemohon || !newLoket.value.jenis_permohonan || !newLoket.value.no302 || !newLoket.value.tanggal) {
+      alert('Harap isi semua field sebelum menyimpan.');
       return;
     }
 
-    // Insert into form_surat table
-    const { data: suratData, error: suratError } = await $supabase
-      .from('form_surat')
-      .insert([{
-        loket_sp_id: loketData[0].id,  // Assuming the 'loket_sp' table has an 'id' column
-        no_surat: '',  // Add logic to set surat number if needed
-        nama_petugas: '',  // Add logic to set petugas name if needed
-        created_at: new Date().toISOString()  // Timestamp or any other field you need
-      }]);
+    const payload = {
+      no_berkas: newLoket.value.no_berkas.trim(),
+      nama_pemohon: newLoket.value.nama_pemohon.trim(),
+      jenis_permohonan: newLoket.value.jenis_permohonan.trim(),
+      no302: newLoket.value.no302.trim(),
+      tanggal: newLoket.value.tanggal
+    };
 
-    if (suratError) {
-      console.error('Error inserting into form_surat:', suratError);
-      alert('Terjadi kesalahan saat menyimpan data ke form_surat');
-      return;
+    let error;
+    if (newLoket.value.id) {
+      // Edit data
+      ({ error } = await supabase.from('loket').update(payload).eq('id', newLoket.value.id));
+    } else {
+      // Tambah data baru
+      ({ error } = await supabase.from('loket').insert([payload]));
     }
 
-    // Add the new loket data to the table
-    loketList.value.push(loketData[0]);
-    filterLoket();
+    if (error) throw error;
+
+    fetchLoket(); // Refresh data
     closeLoketPopup();
     clearNewLoketForm();
   } catch (error) {
-    console.error('Error submitting form:', error);
-    alert('Terjadi kesalahan saat menyimpan data');
+    console.error('Error saving data:', error);
+    alert('Terjadi kesalahan saat menyimpan data. Cek kembali input Anda.');
+  }
+};
+
+// Fungsi untuk Edit Loket
+const editLoket = (loket) => {
+  newLoket.value = { ...loket }; // Isi form dengan data yang akan diedit
+  showEditPopup.value = true;
+  showLoketPopup.value = true; // Buka popup
+};
+
+// Fungsi Hapus Loket
+const deleteLoket = async (id) => {
+  if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+    try {
+      const { error } = await supabase.from('loket').delete().eq('id', id);
+      if (error) throw error;
+
+      // Perbarui daftar setelah menghapus
+      loketList.value = loketList.value.filter(loket => loket.id !== id);
+      filterLoket();
+    } catch (error) {
+      console.error('Error deleting data:', error);
+      alert('Terjadi kesalahan saat menghapus data');
+    }
   }
 };
 
 
+// Filter Data Loket
 const filterLoket = () => {
   const query = searchQuery.value.toLowerCase();
-  filteredLoketList.value = loketList.value.filter(loket => {
-    return (
-      loket.no_berkas.toLowerCase().includes(query) ||
-      loket.nama_pemohon.toLowerCase().includes(query) ||
-      loket.jenis_permohonan.toLowerCase().includes(query) ||
-      loket.no302.toLowerCase().includes(query)
-    );
-  });
+  filteredLoketList.value = loketList.value.filter(item =>
+    String(item.no_berkas).toLowerCase().includes(query) ||
+    String(item.nama_pemohon).toLowerCase().includes(query) ||
+    String(item.jenis_permohonan).toLowerCase().includes(query) ||
+    String(item.no302).toLowerCase().includes(query)
+  );
 };
 
-const openAddLoketPopup = () => {
+// Buka & Tutup Popup
+const openLoketPopup = () => {
+  clearNewLoketForm();
+  showEditPopup.value = false;
   showLoketPopup.value = true;
 };
 
@@ -180,18 +195,11 @@ const closeLoketPopup = () => {
   showLoketPopup.value = false;
 };
 
+// Reset Form
 const clearNewLoketForm = () => {
-  newLoket.value = {
-    no_berkas: '',
-    nama_pemohon: '',
-    jenis_permohonan: '',
-    no302: '',
-    tanggal: ''
-  };
+  newLoket.value = { id: null, no_berkas: '', nama_pemohon: '', jenis_permohonan: '', no302: '', tanggal: '' };
 };
 </script>
-
-
 
 <style scoped>
 .loket-table-container {
