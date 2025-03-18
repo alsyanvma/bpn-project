@@ -66,16 +66,6 @@ onMounted(async () => {
     
     <!-- Kontrol Blur yang berada di tengah -->
     <div class="blur-control">
-      <label for="blur-slider">Atur Blur:</label>
-      <input 
-        id="blur-slider" 
-        type="range" 
-        min="0" 
-        max="20"  <!-- Rentang diperbesar hingga 20 -->
-        v-model="blurAmount" 
-        step="1"   <!-- Langkahnya diatur agar lebih halus -->
-      />
-      <span>{{ blurAmount }}px</span>
     </div>
   </div>
 </template>
