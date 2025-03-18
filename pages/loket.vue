@@ -1,15 +1,11 @@
 <template>
   <div class="loket-table-container">
-    <h2>Data Loket SP</h2>
-
     <!-- Tombol Tambah Loket -->
     <button @click="openLoketPopup" class="add-btn">Tambah Loket</button>
-
     <!-- Pencarian Loket -->
     <div class="search-container">
       <input type="text" v-model="searchQuery" placeholder="Cari Loket..." @input="filterLoket" class="search-input"/>
     </div>
-
     <!-- Popup Form untuk Menambah Loket -->
     <div v-if="showLoketPopup" class="popup-overlay" @click="closeLoketPopup">
   <div class="popup-container" @click.stop>
@@ -70,6 +66,7 @@
             <td>
               <button @click="editLoket(loket)" class="edit-btn">Edit</button>
               <button @click="deleteLoket(loket.id)" class="delete-btn">Hapus</button>
+              
             </td>
           </tr>
         </tbody>
@@ -79,17 +76,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { supabase } from '@/plugins/supabase'; // Pastikan path benar
+import { ref, onMounted, watch } from 'vue';
+import { supabase } from '@/plugins/supabase';
 
-const loketList = ref([]);
-const filteredLoketList = ref([]);
+const loketList = ref([]);           // Data asli dari Supabase
+const filteredLoketList = ref([]);   // Data yang akan ditampilkan hanya saat dicari
 const searchQuery = ref('');
 const showLoketPopup = ref(false);
 const showEditPopup = ref(false);
+const notification = ref('');
 
 const newLoket = ref({
-  id: null, // Tambahkan id untuk edit
+  id: null,
   no_berkas: '',
   nama_pemohon: '',
   jenis_permohonan: '',
@@ -97,13 +95,26 @@ const newLoket = ref({
   tanggal: ''
 });
 
-// Fetch Data Loket
+// 🚀 Cek status login saat halaman dimuat
+onMounted(async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    router.push('/login');  // Redirect ke login jika belum masuk
+  } else {
+    fetchLoket();  // Hanya fetch data jika sudah login
+  }
+});
+
+definePageMeta({
+  middleware: 'auth' // Middleware akan dijalankan sebelum halaman dirender
+});
+
+// 🚀 Fetch Data Loket (Tetap Kosong Sampai Dicari)
 const fetchLoket = async () => {
   try {
     const { data, error } = await supabase.from('loket').select('*');
     if (error) throw error;
     loketList.value = data || [];
-    filterLoket();
   } catch (error) {
     console.error('Error fetching loket:', error);
   }
@@ -112,7 +123,25 @@ const fetchLoket = async () => {
 // Fetch data saat komponen dimuat
 onMounted(fetchLoket);
 
-// Fungsi Tambah/Edit Loket
+// 🔍 Filter Data Loket (Menampilkan Data Saat Dicari)
+const filterLoket = () => {
+  const query = searchQuery.value.toLowerCase();
+  if (!query) {
+    filteredLoketList.value = [];  // Jika tidak ada pencarian, tabel kosong
+  } else {
+    filteredLoketList.value = loketList.value.filter(item =>
+      String(item.no_berkas).toLowerCase().includes(query) ||
+      String(item.nama_pemohon).toLowerCase().includes(query) ||
+      String(item.jenis_permohonan).toLowerCase().includes(query) ||
+      String(item.no302).toLowerCase().includes(query)
+    );
+  }
+};
+
+// Pantau perubahan pada searchQuery
+watch(searchQuery, filterLoket);
+
+// 📌 Fungsi Tambah/Edit Data ke Supabase
 const submitLoketForm = async () => {
   try {
     if (!newLoket.value.no_berkas || !newLoket.value.nama_pemohon || !newLoket.value.jenis_permohonan || !newLoket.value.no302 || !newLoket.value.tanggal) {
@@ -121,50 +150,51 @@ const submitLoketForm = async () => {
     }
 
     const payload = {
-      no_berkas: newLoket.value.no_berkas.trim(),
-      nama_pemohon: newLoket.value.nama_pemohon.trim(),
-      jenis_permohonan: newLoket.value.jenis_permohonan.trim(),
-      no302: newLoket.value.no302.trim(),
+      no_berkas: String(newLoket.value.no_berkas || '').trim(),
+      nama_pemohon: String(newLoket.value.nama_pemohon || '').trim(),
+      jenis_permohonan: String(newLoket.value.jenis_permohonan || '').trim(),
+      no302: String(newLoket.value.no302 || '').trim(),
       tanggal: newLoket.value.tanggal
     };
 
     let error;
     if (newLoket.value.id) {
-      // Edit data
       ({ error } = await supabase.from('loket').update(payload).eq('id', newLoket.value.id));
+
+      // Jika update berhasil, perbarui data di daftar tanpa fetch ulang
+      const index = loketList.value.findIndex(loket => loket.id === newLoket.value.id);
+      if (index !== -1) {
+        loketList.value[index] = { ...newLoket.value };
+      }
     } else {
-      // Tambah data baru
       ({ error } = await supabase.from('loket').insert([payload]));
+      await fetchLoket();  // Fetch ulang hanya untuk data baru
     }
 
     if (error) throw error;
 
-    fetchLoket(); // Refresh data
     closeLoketPopup();
     clearNewLoketForm();
+    showNotification('Data berhasil disimpan!');
+
+    // Pastikan data tetap muncul jika sedang dicari
+    filterLoket();
   } catch (error) {
     console.error('Error saving data:', error);
-    alert('Terjadi kesalahan saat menyimpan data. Cek kembali input Anda.');
+    alert('Terjadi kesalahan saat menyimpan data.');
   }
 };
 
-// Fungsi untuk Edit Loket
-const editLoket = (loket) => {
-  newLoket.value = { ...loket }; // Isi form dengan data yang akan diedit
-  showEditPopup.value = true;
-  showLoketPopup.value = true; // Buka popup
-};
-
-// Fungsi Hapus Loket
+// ✅ Fungsi Hapus Data
 const deleteLoket = async (id) => {
   if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
     try {
       const { error } = await supabase.from('loket').delete().eq('id', id);
       if (error) throw error;
 
-      // Perbarui daftar setelah menghapus
       loketList.value = loketList.value.filter(loket => loket.id !== id);
-      filterLoket();
+      filterLoket(); // Pastikan tabel diperbarui
+      showNotification('Data berhasil dihapus!');
     } catch (error) {
       console.error('Error deleting data:', error);
       alert('Terjadi kesalahan saat menghapus data');
@@ -172,19 +202,22 @@ const deleteLoket = async (id) => {
   }
 };
 
-
-// Filter Data Loket
-const filterLoket = () => {
-  const query = searchQuery.value.toLowerCase();
-  filteredLoketList.value = loketList.value.filter(item =>
-    String(item.no_berkas).toLowerCase().includes(query) ||
-    String(item.nama_pemohon).toLowerCase().includes(query) ||
-    String(item.jenis_permohonan).toLowerCase().includes(query) ||
-    String(item.no302).toLowerCase().includes(query)
-  );
+// 📌 Fungsi Edit Loket (Memastikan Tombol Edit Berfungsi)
+const editLoket = (loket) => {
+  newLoket.value = { ...loket };   // Mengisi form dengan data yang dipilih
+  showEditPopup.value = true;
+  showLoketPopup.value = true;     // Membuka popup edit
 };
 
-// Buka & Tutup Popup
+// 📌 Notifikasi
+const showNotification = (message) => {
+  notification.value = message;
+  setTimeout(() => {
+    notification.value = '';
+  }, 3000);
+};
+
+// 📌 Fungsi Buka & Tutup Popup
 const openLoketPopup = () => {
   clearNewLoketForm();
   showEditPopup.value = false;
@@ -195,16 +228,17 @@ const closeLoketPopup = () => {
   showLoketPopup.value = false;
 };
 
-// Reset Form
+// 📌 Reset Form
 const clearNewLoketForm = () => {
   newLoket.value = { id: null, no_berkas: '', nama_pemohon: '', jenis_permohonan: '', no302: '', tanggal: '' };
 };
 </script>
 
+
 <style scoped>
 .loket-table-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 20px;
 }
 
@@ -220,7 +254,7 @@ h2 {
   width: 180px;
   margin: 20px auto;
   padding: 12px;
-  background-color: #e67e22;
+  background-color: #1b1542;
   color: white;
   border: none;
   border-radius: 5px;
@@ -230,7 +264,7 @@ h2 {
 }
 
 .add-btn:hover {
-  background-color: #d35400;
+  background-color: #370874;
 }
 
 .search-container {
@@ -265,7 +299,7 @@ h2 {
 }
 
 .loket-table th {
-  background-color: #e67e22;
+  background-color: #a59e98;
   color: white;
   font-weight: bold;
 }
@@ -279,7 +313,7 @@ h2 {
 }
 
 .loket-table tr:hover td {
-  background-color: #f5b041;
+  background-color: #dfdbd6;
   cursor: pointer;
 }
 
@@ -291,13 +325,16 @@ h2 {
 .edit-btn {
   padding: 6px 12px;
   font-size: 14px;
-  background-color: #f39c12;
+  background-color: #fcb62c;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 }
-
+.delete-btn{
+  background-color: #f53621;
+  color: white;
+}
 .edit-btn:hover {
   background-color: #e67e22;
 }
@@ -379,3 +416,4 @@ h2 {
   background-color: #c0392b;
 }
 </style>
+

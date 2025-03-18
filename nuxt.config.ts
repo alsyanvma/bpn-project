@@ -22,10 +22,12 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      SUPABASE_URL: process.env.SUPABASE_URL || '',
-      SUPABASE_KEY: process.env.SUPABASE_KEY || '',
+      SUPABASE_URL: process.env.SUPABASE_URL || '',  // Mendapatkan URL Supabase dari variabel lingkungan
+      SUPABASE_KEY: process.env.SUPABASE_KEY || '',  // Mendapatkan Supabase Key dari variabel lingkungan
     },
   },
 
-  plugins: ['~/plugins/supabase'],
+  plugins: [
+    '~/plugins/supabase', // Menambahkan plugin Supabase
+  ],
 });

@@ -1,7 +1,5 @@
 <template>
   <div class="surat-table-container">
-    <h2>Data Surat</h2>
-
     <!-- 🔍 Input Pencarian -->
     <div class="search-container">
       <input
@@ -11,7 +9,6 @@
         class="search-input"
       />
     </div>
-
     <!-- 📝 Popup Edit Surat -->
     <div v-if="showSuratPopup" class="popup-overlay" @click="closeSuratPopup">
       <div class="popup-container animate-popup" @click.stop>
@@ -53,11 +50,11 @@
         <tbody>
           <tr v-for="(loket, index) in filteredSuratList" :key="index">
             <td>{{ loket.no_surat || '-' }}</td>
-            <td>{{ loket.no_berkas }}</td>
-            <td>{{ loket.nama_pemohon }}</td>
-            <td>{{ loket.jenis_permohonan }}</td>
+            <td>{{ loket.no_berkas || '-' }}</td>
+            <td>{{ loket.nama_pemohon || '-' }}</td>
+            <td>{{ loket.jenis_permohonan || '-' }}</td>
             <td>{{ loket.no302 || '-' }}</td>
-            <td>{{ loket.tanggal }}</td>
+            <td>{{ loket.tanggal || '-' }}</td>
             <td>{{ loket.nama_petugas || '-' }}</td>
             <td>
               <button @click="editSurat(loket)" class="edit-btn">Edit</button>
@@ -70,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { supabase } from '@/plugins/supabase';
 
 const loketList = ref([]);
@@ -78,24 +75,42 @@ const searchQuery = ref('');
 const showSuratPopup = ref(false);
 const editData = ref({ no_surat: '', nama_petugas: '', no_berkas: '' });
 
+definePageMeta({
+  middleware: 'auth'
+});
+// 🚀 Cek status login saat halaman dimuat
+onMounted(async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    router.push('/login');  // Redirect ke login jika belum masuk
+  } else {
+    fetchLoket();  // Hanya fetch data jika sudah login
+  }
+});
 const fetchLoket = async () => {
   try {
     const { data, error } = await supabase.from('loket').select('*');
     if (error) throw error;
+
     loketList.value = data || [];
+
+    await nextTick(); // 🔄 Pastikan Vue merender ulang tabel
+    console.log('Data Loket setelah update:', loketList.value);
   } catch (error) {
     console.error('Error fetching loket:', error);
   }
 };
 onMounted(fetchLoket);
 
-// 🔍 Filter Pencarian Real-Time
+// 🔍 Filter Pencarian: Data hanya muncul saat dicari
 const filteredSuratList = computed(() => {
-  return loketList.value.filter(loket => {
-    return Object.values(loket).some(val =>
-      String(val).toLowerCase().includes(searchQuery.value.toLowerCase())
-    );
-  });
+  if (!searchQuery.value.trim()) return []; // Tidak tampilkan data jika input kosong
+
+  return loketList.value.filter(loket =>
+    Object.values(loket)
+      .map(val => String(val || '').toLowerCase())
+      .some(val => val.includes(searchQuery.value.toLowerCase()))
+  );
 });
 
 // ✏ Edit Surat (Buka Popup)
@@ -144,20 +159,15 @@ const submitSuratForm = async () => {
 
 <style scoped>
 .surat-table-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 20px;
-}
-
-h2 {
-  text-align: center;
-  color: #2c3e50;
 }
 
 /* 🔍 Search Bar */
 .search-container {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .search-input {
@@ -184,8 +194,12 @@ h2 {
 }
 
 .loket-table th {
-  background-color: #e67e22;
+  background-color: #a59e98;
   color: white;
+}
+.loket-table tr:hover td {
+  background-color: #dfdbd6;
+  cursor: pointer;
 }
 
 /* ✏ Tombol Edit */
