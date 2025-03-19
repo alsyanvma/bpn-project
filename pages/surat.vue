@@ -357,13 +357,14 @@ const submitSuratForm = async () => {
 }
 
 .submit-btn {
-  background-color: #28a745;
+  background-color: #2980b9;
   color: white;
   border: none;
 }
 
 .submit-btn:hover {
-  background-color: #218838;
+  background-color: #2980b9;
+;
   transform: scale(1.05);
 }
 
