@@ -51,8 +51,8 @@
             <th>Nama Pemohon</th>
             <th>Jenis Permohonan</th>
             <th>No 302</th>
-            <th>Tanggal</th>
             <th>Nama Petugas</th>
+            <th>Tanggal</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -66,8 +66,9 @@
             <td>{{ loket.nama_pemohon || '-' }}</td>
             <td>{{ loket.jenis_permohonan || '-' }}</td>
             <td>{{ loket.no302 || '-' }}</td>
-            <td>{{ loket.tanggal || '-' }}</td>
             <td>{{ getNamaPetugas(loket.nama_petugas) || '-' }}</td>
+
+            <td>{{ loket.tanggal || '-' }}</td>
             <td>
               <button @click="editSurat(loket)" class="edit-btn">Edit</button>
             </td>
@@ -205,6 +206,44 @@ const submitSuratForm = async () => {
 .surat-table-container {
   width: 100%;
   padding: 20px;
+}
+
+.surat-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.surat-table th,
+.surat-table td {
+  padding: 12px 15px;
+  text-align: left;
+}
+
+.surat-table th {
+  background-color: #a59e98;
+  color: white;
+  font-weight: bold;
+}
+
+.surat-table td {
+  background-color: #ecf0f1;
+}
+
+.surat-table tr:nth-child(even) td {
+  background-color: #f9f9f9;
+}
+
+.surat-table tr:hover td {
+  background-color: #dfdbd6;
+  cursor: pointer;
+}
+
+.surat-table td {
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #dac4c4;
 }
 
 .search-container {

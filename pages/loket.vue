@@ -22,10 +22,14 @@
           </div>
 
           <div class="form-group">
-            <label for="loketRequestType">Jenis Permohonan:</label>
-            <input type="text" id="loketRequestType" v-model="newLoket.jenis_permohonan" required />
+          <label for="loketRequestType">Jenis Permohonan:</label>
+          <select id="loketRequestType" v-model="newLoket.jenis_permohonan" required>
+            <option value="" disabled>Pilih Jenis Permohonan</option>
+            <option v-for="(item, index) in permohonanList" :key="index" :value="item.permohonan">
+              {{ item.permohonan }}
+            </option>
+          </select>
           </div>
-
           <div class="form-group">
             <label for="loketNo302">No 302:</label>
             <input type="text" id="loketNo302" v-model="newLoket.no302" required />
@@ -79,37 +83,50 @@
 import { ref, onMounted, watch } from 'vue';
 import { supabase } from '@/plugins/supabase';
 
-const loketList = ref([]);           // Data asli dari Supabase
-const filteredLoketList = ref([]);   // Data yang akan ditampilkan hanya saat dicari
+const loketList = ref([]);           
+const filteredLoketList = ref([]);   
 const searchQuery = ref('');
 const showLoketPopup = ref(false);
 const showEditPopup = ref(false);
 const notification = ref('');
 
+const permohonanList = ref([]); // 🆕 Data dari tabel permohonan
+
 const newLoket = ref({
   id: null,
   no_berkas: '',
   nama_pemohon: '',
-  jenis_permohonan: '',
+  jenis_permohonan: '',  // Akan diambil dari dropdown
   no302: '',
   tanggal: ''
 });
+
+const payload = {
+  no_berkas: String(newLoket.value.no_berkas || '').trim(),
+  nama_pemohon: String(newLoket.value.nama_pemohon || '').trim(),
+  jenis_permohonan: String(newLoket.value.jenis_permohonan || '').trim(),
+  no302: newLoket.value.no302 ? Number(newLoket.value.no302) : null, // Jika INTEGER, konversi ke angka
+  tanggal: newLoket.value.tanggal
+};
+
+console.log('Payload:', payload); // Debugging
+const { error } = await supabase.from('loket').insert([payload]);
+console.log('Supabase error:', error);
 
 // 🚀 Cek status login saat halaman dimuat
 onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    router.push('/login');  // Redirect ke login jika belum masuk
+    router.push('/login');  
   } else {
-    fetchLoket();  // Hanya fetch data jika sudah login
+    fetchLoket();
+    fetchPermohonan();  // 🆕 Ambil data permohonan saat halaman dimuat
   }
 });
 
-definePageMeta({
-  middleware: 'auth' // Middleware akan dijalankan sebelum halaman dirender
-});
+definePageMeta({ middleware: 'auth' });
 
-// 🚀 Fetch Data Loket (Tetap Kosong Sampai Dicari)
+// 🚀 Ambil data loket dari Supabase
 const fetchLoket = async () => {
   try {
     const { data, error } = await supabase.from('loket').select('*');
@@ -120,14 +137,22 @@ const fetchLoket = async () => {
   }
 };
 
-// Fetch data saat komponen dimuat
-onMounted(fetchLoket);
+// 🚀 Ambil data permohonan dari Supabase
+const fetchPermohonan = async () => {
+  try {
+    const { data, error } = await supabase.from('permohonan').select('permohonan');
+    if (error) throw error;
+    permohonanList.value = data || [];
+  } catch (error) {
+    console.error('Error fetching permohonan:', error);
+  }
+};
 
-// 🔍 Filter Data Loket (Menampilkan Data Saat Dicari)
+// 🔍 Filter Data Loket
 const filterLoket = () => {
   const query = searchQuery.value.toLowerCase();
   if (!query) {
-    filteredLoketList.value = [];  // Jika tidak ada pencarian, tabel kosong
+    filteredLoketList.value = [];
   } else {
     filteredLoketList.value = loketList.value.filter(item =>
       String(item.no_berkas).toLowerCase().includes(query) ||
@@ -160,15 +185,13 @@ const submitLoketForm = async () => {
     let error;
     if (newLoket.value.id) {
       ({ error } = await supabase.from('loket').update(payload).eq('id', newLoket.value.id));
-
-      // Jika update berhasil, perbarui data di daftar tanpa fetch ulang
       const index = loketList.value.findIndex(loket => loket.id === newLoket.value.id);
       if (index !== -1) {
         loketList.value[index] = { ...newLoket.value };
       }
     } else {
       ({ error } = await supabase.from('loket').insert([payload]));
-      await fetchLoket();  // Fetch ulang hanya untuk data baru
+      await fetchLoket();
     }
 
     if (error) throw error;
@@ -176,8 +199,6 @@ const submitLoketForm = async () => {
     closeLoketPopup();
     clearNewLoketForm();
     showNotification('Data berhasil disimpan!');
-
-    // Pastikan data tetap muncul jika sedang dicari
     filterLoket();
   } catch (error) {
     console.error('Error saving data:', error);
@@ -193,7 +214,7 @@ const deleteLoket = async (id) => {
       if (error) throw error;
 
       loketList.value = loketList.value.filter(loket => loket.id !== id);
-      filterLoket(); // Pastikan tabel diperbarui
+      filterLoket();
       showNotification('Data berhasil dihapus!');
     } catch (error) {
       console.error('Error deleting data:', error);
@@ -202,11 +223,11 @@ const deleteLoket = async (id) => {
   }
 };
 
-// 📌 Fungsi Edit Loket (Memastikan Tombol Edit Berfungsi)
+// 📌 Fungsi Edit Loket
 const editLoket = (loket) => {
-  newLoket.value = { ...loket };   // Mengisi form dengan data yang dipilih
+  newLoket.value = { ...loket };   
   showEditPopup.value = true;
-  showLoketPopup.value = true;     // Membuka popup edit
+  showLoketPopup.value = true;
 };
 
 // 📌 Notifikasi
@@ -233,6 +254,7 @@ const clearNewLoketForm = () => {
   newLoket.value = { id: null, no_berkas: '', nama_pemohon: '', jenis_permohonan: '', no302: '', tanggal: '' };
 };
 </script>
+
 
 
 <style scoped>
