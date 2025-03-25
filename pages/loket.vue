@@ -22,13 +22,14 @@
           </div>
 
           <div class="form-group">
-            <label for="loketRequestType">Jenis Permohonan:</label>
-            <select id="loketRequestType" v-model="newLoket.jenis_permohonan" required>
-              <option value="" disabled>Pilih Jenis Permohonan</option>
-              <option v-for="(item, index) in permohonanList" :key="index" :value="item.permohonan">
-                {{ item.permohonan }}
-              </option>
-            </select>
+            <select v-model="newLoket.jenis_permohonan" required>
+            <option value="" disabled>Pilih Jenis Permohonan</option>
+            <option v-for="permohonan in permohonanList" :key="permohonan.permohonan" :value="permohonan.permohonan">
+              {{ permohonan.permohonan || "Data tidak tersedia" }}
+            </option>
+          </select>
+
+
           </div>
           <div class="form-group">
             <label for="loketNo302">No 302:</label>
@@ -139,28 +140,11 @@ onMounted(async () => {
   if (!user) {
     router.push('/login');
   } else {
-    await fetchLoket(); // ✅ Pastikan fungsi ini sudah didefinisikan sebelumnya
+    await fetchLoket();
     await fetchPermohonan();
+    console.log("🚀 Permohonan yang berhasil diambil:", permohonanList.value);
   }
 });
-
-
-
-// 🚀 Ambil data dari Supabase
-
-const fetchPermohonan = async () => {
-  try {
-    const { data, error } = await supabase.from('permohonan').select('permohonan');
-    if (error) throw error;
-
-    permohonanList.value = data || [];
-    console.log("✅ Permohonan list dari Supabase:", permohonanList.value); // Debugging
-  } catch (error) {
-    console.error('❌ Error fetching permohonan:', error);
-  }
-};
-
-
 
 // 🔍 Filter Data Loket
 const filterLoket = () => {
@@ -177,6 +161,19 @@ const filterLoket = () => {
         String(item.no302 || '').toLowerCase().includes(query)
       );
     });
+  }
+};
+
+
+const fetchPermohonan = async () => {
+  try {
+    const { data, error } = await supabase.from('permohonan').select('permohonan');
+    if (error) throw error;
+
+    permohonanList.value = data || [];
+    console.log("✅ Permohonan list:", permohonanList.value); // Debugging
+  } catch (error) {
+    console.error('❌ Error fetching permohonan:', error);
   }
 };
 
@@ -232,6 +229,7 @@ const submitLoketForm = async () => {
       if (data) {
         loketList.value.push(data);
       }
+      
     }
 
     if (error) throw error;
@@ -242,6 +240,7 @@ const submitLoketForm = async () => {
   } catch (error) {
     console.error('Error saving data:', error.message, error.details);
     alert('Terjadi kesalahan saat menyimpan data.');
+    
   }
 };
 
