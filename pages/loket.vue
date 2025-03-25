@@ -118,6 +118,7 @@ const newLoket = ref({
   tanggal: ''
 });
 
+
 // 🚀 Cek login pengguna saat halaman dimuat
 // 🚀 Ambil data dari Supabase
 const fetchLoket = async () => {
@@ -194,7 +195,6 @@ const submitLoketForm = async () => {
       return;
     }
 
-    // ✅ Pastikan jenis_permohonan ada di tabel permohonan
     const isValidPermohonan = permohonanList.value.some(
       p => p.permohonan === newLoket.value.jenis_permohonan.trim()
     );
@@ -204,35 +204,47 @@ const submitLoketForm = async () => {
       return;
     }
 
-    // 🚀 Kirim data ke Supabase
     const payload = {
-      no_berkas: newLoket.value.no_berkas.trim(),
-      nama_pemohon: newLoket.value.nama_pemohon.trim(),
-      jenis_permohonan: newLoket.value.jenis_permohonan.trim(),
-      no302: newLoket.value.no302.trim(),
+      no_berkas: String(newLoket.value.no_berkas).trim(),
+      nama_pemohon: String(newLoket.value.nama_pemohon).trim(),
+      jenis_permohonan: String(newLoket.value.jenis_permohonan).trim(),
+      no302: String(newLoket.value.no302).trim(),
       tanggal: newLoket.value.tanggal
     };
 
-    console.log("Data yang dikirim:", payload); // Debugging
-
     let error;
     if (newLoket.value.id) {
+      // Mode Edit: Perbarui data yang ada di Supabase
       ({ error } = await supabase.from('loket').update(payload).eq('id', newLoket.value.id));
+
+      // 🔥 Perbarui langsung di `loketList` tanpa fetch ulang
+      const index = loketList.value.findIndex(loket => loket.id === newLoket.value.id);
+      if (index !== -1) {
+        loketList.value[index] = { ...loketList.value[index], ...payload };
+      }
+
     } else {
-      ({ error } = await supabase.from('loket').insert([payload]));
+      // Mode Tambah: Simpan data baru ke Supabase
+      const { data, error: insertError } = await supabase.from('loket').insert([payload]).select().single();
+      error = insertError;
+
+      // 🔥 Tambahkan langsung ke `loketList`
+      if (data) {
+        loketList.value.push(data);
+      }
     }
 
     if (error) throw error;
 
-    await fetchLoket();
-    closeLoketPopup();
     showNotification('Data berhasil disimpan!');
+    closeLoketPopup();
 
   } catch (error) {
     console.error('Error saving data:', error.message, error.details);
     alert('Terjadi kesalahan saat menyimpan data.');
   }
 };
+
 
 
 // ✅ Fungsi Hapus Data
