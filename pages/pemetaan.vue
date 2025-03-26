@@ -55,9 +55,10 @@
       <div class="popup-container large">
         <h2 class="popup-title">Edit Surat</h2>
 
-        <label class="label">No Surat:</label>
+        <label class="label">No 307:</label>
         <input v-model="editData.no307" class="input" />
 
+        <label class="label">Nama Petugas Pemetaan:</label>
         <select v-model="editData.petugas_pemetaan" class="input">
           <option v-for="petugas_pemetaan in daftarPetugasPemetaan" :key="petugas_pemetaan.id"
             :value="petugas_pemetaan.nama">
