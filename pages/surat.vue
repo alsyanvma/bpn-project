@@ -41,8 +41,8 @@
             <th>No Berkas</th>
             <th>Nama Pemohon</th>
             <th>Jenis Permohonan</th>
-            <th>No 302</th>
             <th>Nama Petugas</th>
+            <th>No 302</th>
             <th>Tanggal</th>
             <th>Aksi</th>
           </tr>
@@ -66,8 +66,8 @@
             <td>{{ loket.no_berkas || '-' }}</td>
             <td>{{ loket.nama_pemohon || '-' }}</td>
             <td>{{ loket.jenis_permohonan || '-' }}</td>
-            <td>{{ loket.no302 || '-' }}</td>
             <td>{{ loket.nama_petugas || '-' }}</td>
+            <td>{{ loket.no302 || '-' }}</td>
             <td>{{ loket.tanggal || '-' }}</td>
             <td>
               <button @click="editSurat(loket)" class="edit-btn">Edit</button>

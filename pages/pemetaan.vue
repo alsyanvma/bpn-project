@@ -15,11 +15,11 @@
             <th>No Berkas</th>
             <th>Nama Pemohon</th>
             <th>Jenis Permohonan</th>
-            <th>No 302</th>
             <th>Nama Petugas Ukur</th>
-            <th>No 307</th>
             <th>Nama Petugas Pemetaan</th>
-            <th>Tanggal</th>
+            <th>No 302</th>
+            <th>Tanggal Berkas</th>
+            <th>Tanggal di Serahkan ke Pemetaan</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -30,11 +30,11 @@
               <td>{{ loket.no_berkas || '-' }}</td>
               <td>{{ loket.nama_pemohon }}</td>
               <td>{{ loket.jenis_permohonan }}</td>
-              <td>{{ loket.no302 || '-' }}</td>
               <td>{{ loket.nama_petugas || '-' }}</td>
-              <td>{{ loket.no307 || '-' }}</td>
               <td>{{ loket.petugas_pemetaan || 'Tidak Ditemukan' }}</td>
+              <td>{{ loket.no302 || '-' }}</td>
               <td>{{ loket.tanggal || '-' }}</td>
+              <td>{{ loket.tanggalp ? new Date(loket.tanggalp).toLocaleDateString('id-ID') : '-' }}</td>
               <td>
                 <button @click="editItem(loket)" class="btn-edit">Edit</button>
               </td>
@@ -53,18 +53,25 @@
     <!-- Popup Edit -->
     <div v-if="showPopup" class="popup-overlay">
       <div class="popup-container large">
-        <h2 class="popup-title">Edit Surat</h2>
+        <h2 class="popup-title">Edit Pemetaan</h2>
 
-        <label class="label">No 307:</label>
-        <input v-model="editData.no307" class="input" />
+    <div class="form-group">
+      <label class="label">Tanggal di Serahkan ke Pemetaan:</label>
+      <input type="date" v-model="editData.tanggalp" class="input" />
+    </div>
 
-        <label class="label">Nama Petugas Pemetaan:</label>
-        <select v-model="editData.petugas_pemetaan" class="input">
-          <option v-for="petugas_pemetaan in daftarPetugasPemetaan" :key="petugas_pemetaan.id"
-            :value="petugas_pemetaan.nama">
-            {{ petugas_pemetaan.nama }}
-          </option>
-        </select>
+      <div class="form-group">
+      <label class="label">Nama Petugas Pemetaan:</label>
+      <select v-model="editData.petugas_pemetaan" class="input">
+        <option
+          v-for="petugas_pemetaan in daftarPetugasPemetaan"
+          :key="petugas_pemetaan.id"
+          :value="petugas_pemetaan.nama"
+        >
+          {{ petugas_pemetaan.nama }}
+        </option>
+      </select>
+    </div>
 
         <div class="popup-actions">
           <button @click="simpanEdit" class="submit-btn">Simpan</button>
@@ -85,11 +92,6 @@ const daftarPetugasPemetaan = ref([]);
 const showPopup = ref(false);
 const searchQuery = ref('');
 const searchDate = ref('');
-const editData = ref({
-  id: null,
-  no307: '',
-  petugas_pemetaan: null
-});
 
 // ✅ **Fetch Data Loket (Pemetaan)**
 const fetchPemetaan = async () => {
@@ -98,8 +100,10 @@ const fetchPemetaan = async () => {
     console.error('Gagal mengambil data pemetaan:', error.message);
     return;
   }
+  console.log('Data Loket:', data); // Tambahkan ini untuk debug
   dataPemetaan.value = data;
 };
+
 
 // ✅ **Fetch Petugas Pemetaan**
 const fetchPetugasPemetaan = async () => {
@@ -111,13 +115,20 @@ const fetchPetugasPemetaan = async () => {
   daftarPetugasPemetaan.value = data;
 };
 
+const editData = ref({
+  id: null,
+  tanggalp: '',
+  petugas_pemetaan: null
+});
+
+
 // ✅ **Fungsi Edit Item**
 const editItem = (item) => {
   editData.value = {
-    id: item.id,
-    no307: item.no307 || '',
-    petugas_pemetaan: item.petugas_pemetaan || null
-  };
+  id: item.id,
+  tanggalp: item.tanggalp || '',
+  petugas_pemetaan: item.petugas_pemetaan || null
+};
   showPopup.value = true;
 };
 
@@ -131,7 +142,7 @@ const simpanEdit = async () => {
   const { error } = await supabase
     .from('loket')
     .update({
-      no307: editData.value.no307,
+      tanggalp: editData.value.tanggalp,
       petugas_pemetaan: editData.value.petugas_pemetaan
     })
     .match({ id: editData.value.id });
@@ -144,6 +155,7 @@ const simpanEdit = async () => {
   showPopup.value = false;
   await fetchPemetaan();
 };
+
 
 // ✅ **Fungsi Filter Data Pemetaan**
 const filteredData = computed(() => {

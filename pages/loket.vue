@@ -1,4 +1,8 @@
 <template>
+    <div class="total-data">
+    <p>Total Data Terkirim: {{ totalDataTerkirim }}</p>
+  </div>
+
   <div class="loket-table-container">
     <!-- Tombol Tambah Loket -->
     <button @click="openLoketPopup" class="add-btn">Tambah Loket</button>
@@ -57,7 +61,7 @@
             <th>Nama Pemohon</th>
             <th>Jenis Permohonan</th>
             <th>No 302</th>
-            <th>Tanggal</th>
+            <th>Tanggal Berkas</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -109,6 +113,8 @@ const searchQuery = ref('');
 const showLoketPopup = ref(false);
 const notification = ref('');
 const permohonanList = ref([]);
+const totalDataTerkirim = ref(0);
+
 
 const newLoket = ref({
   id: null,
@@ -127,7 +133,8 @@ const fetchLoket = async () => {
     const { data, error } = await supabase.from('loket').select('*');
     if (error) throw error;
     loketList.value = data || [];
-    filteredLoketList.value = []; // Pastikan tabel kosong saat pertama kali dimuat
+    totalDataTerkirim.value = data.length; // Hitung jumlah data terkirim
+    filteredLoketList.value = [];
   } catch (error) {
     console.error('Error fetching loket:', error);
   }
@@ -292,6 +299,14 @@ const closeLoketPopup = () => {
 
 
 <style scoped>
+.total-data {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
 .loket-table-container {
   width: 100%;
   margin: 0;
