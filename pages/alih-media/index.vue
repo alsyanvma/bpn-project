@@ -127,7 +127,7 @@
     </div>
   </template>
   
-  <script setup>
+<script setup>
   import { ref, onMounted, computed } from 'vue'
   import { supabase } from '@/plugins/supabase'
   
@@ -143,30 +143,31 @@
   
   const editItem = ref({})
   const newItem = ref({
-  jenis_hak: '',
-  no_sertifikat: '',
-  kecamatan_id: '',
-  kelurahan_id: '',
-  nama_pemohon: '',
-  petugas_pemetaan: '',
-  tanggal_pemetaan: ''
-});
-
+    jenis_hak: '',
+    no_sertifikat: '',
+    kecamatan_id: '',
+    kelurahan_id: '',
+    nama_pemohon: '',
+    petugas_pemetaan: '',
+    tanggal_pemetaan: '',
+    keterangan: '',
+    tanggal_penyelesaian: ''
+  })
   
-  // Fetch all Alih Media data with join to related tables
+  // Ambil data utama
   const fetchData = async () => {
     const { data, error } = await supabase
-    .from('alih_media')
-    .select(`
+      .from('alih_media')
+      .select(`
         *,
         kecamatan: kecamatan_id (nama_kecamatan),
         kelurahan: kelurahan_id (nama_kelurahan),
         petugas: petugas_pemetaan (nama)
-        `)
+      `)
     if (!error) alihMediaData.value = data
   }
   
-  // Fetch dropdown lists
+  // Dropdown data
   const fetchDropdownData = async () => {
     const jenisHak = await supabase.from('jenis_hak').select('id, jenis')
     if (!jenisHak.error) jenisHakList.value = jenisHak.data
@@ -174,20 +175,25 @@
     const kecamatan = await supabase.from('kecamatan').select('id, nama_kecamatan')
     if (!kecamatan.error) kecamatanList.value = kecamatan.data
   
-    const kelurahan = await supabase.from('kelurahan').select('id, nama_kelurahan')
+    const kelurahan = await supabase.from('kelurahan').select('id, nama_kelurahan, kecamatan_id')
     if (!kelurahan.error) kelurahanList.value = kelurahan.data
   
     const petugas = await supabase.from('petugas_pemetaan').select('id, nama')
     if (!petugas.error) petugasList.value = petugas.data
   }
   
-  // Open edit popup
+  // Filter kelurahan berdasarkan kecamatan
+  const filteredKelurahan = computed(() => {
+    return kelurahanList.value.filter(kel => kel.kecamatan_id === newItem.value.kecamatan_id)
+  })
+  
+  // Open popup edit
   const openPopup = (item) => {
     editItem.value = { ...item }
     showPopup.value = true
   }
   
-  // Save edit
+  // Simpan edit data
   const saveEdit = async () => {
     const { id, keterangan, tanggal_penyelesaian } = editItem.value
     await supabase.from('alih_media').update({ keterangan, tanggal_penyelesaian }).eq('id', id)
@@ -195,20 +201,27 @@
     fetchData()
   }
   
-  // Save new item
-  const saveNewItem = async () => {
-  const { error } = await supabase.from('alih_media').insert([{
-    jenis_hak: newItem.value.jenis_hak,
-    no_sertifikat: newItem.value.no_sertifikat,
-    kecamatan_id: newItem.value.kecamatan_id,
-    kelurahan_id: newItem.value.kelurahan_id,
-    nama_pemohon: newItem.value.nama_pemohon,
-    petugas_pemetaan: newItem.value.petugas_pemetaan,
-    tanggal_pemetaan: newItem.value.tanggal_pemetaan
-  }]);
+  // Simpan data baru
+  // Simpan data baru
+const saveNewItem = async () => {
+  // Ubah tanggal kosong menjadi null agar tidak error di Supabase
+  const cleanItem = {
+  jenis_hak: parseInt(newItem.value.jenis_hak) || null,
+  no_sertifikat: newItem.value.no_sertifikat,
+  kecamatan_id: parseInt(newItem.value.kecamatan_id) || null,
+  kelurahan_id: parseInt(newItem.value.kelurahan_id) || null,
+  nama_pemohon: newItem.value.nama_pemohon,
+  petugas_pemetaan: parseInt(newItem.value.petugas_pemetaan) || null,
+  tanggal_pemetaan: newItem.value.tanggal_pemetaan || null,
+  keterangan: newItem.value.keterangan,
+  tanggal_penyelesaian: newItem.value.tanggal_penyelesaian || null
+}
+
+
+  const { error } = await supabase.from('alih_media').insert([cleanItem])
 
   if (!error) {
-    showAddPopup.value = false;
+    showAddPopup.value = false
     newItem.value = {
       jenis_hak: '',
       no_sertifikat: '',
@@ -216,43 +229,38 @@
       kelurahan_id: '',
       nama_pemohon: '',
       petugas_pemetaan: '',
-      tanggal_pemetaan: ''
-    };
-    fetchData();
+      tanggal_pemetaan: '',
+      keterangan: '',
+      tanggal_penyelesaian: ''
+    }
+    fetchData()
+  } else {
+    console.error('Gagal menyimpan data:', error)
   }
-};
+}
 
   
   // Format tanggal
-  const formatDate = (date) => {
-    return date ? new Date(date).toLocaleDateString('id-ID') : '-'
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' }
+    return new Date(dateString).toLocaleDateString('id-ID', options)
   }
   
-  // Pencarian
-  const filteredData = computed(() => {
-    if (!searchTerm.value) return alihMediaData.value
-    return alihMediaData.value.filter((item) =>
-      [
-        item.nama_pemohon,
-        item.kecamatan?.nama_kecamatan,
-        item.kelurahan?.nama_kelurahan
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(searchTerm.value.toLowerCase())
-    )
-  })
-  
-  const filteredKelurahan = computed(() => {
-  if (!newItem.value.kecamatan_id) return [];
-  return kelurahanList.value.filter(kel => kel.kecamatan_id === newItem.value.kecamatan_id);
-});
-
   onMounted(() => {
     fetchData()
     fetchDropdownData()
   })
-  </script>
+  
+  const filteredData = computed(() => {
+    if (!searchTerm.value) return alihMediaData.value
+    return alihMediaData.value.filter(item =>
+      Object.values(item).some(val =>
+        String(val).toLowerCase().includes(searchTerm.value.toLowerCase())
+      )
+    )
+  })
+</script>
+  
     
   
   <style scoped>
