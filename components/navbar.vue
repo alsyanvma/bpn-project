@@ -27,6 +27,7 @@ const logout = async () => {
 
 <template>
   <header v-if="route.path !== '/login'" class="header-container">
+    <!-- Logo dan nama aplikasi -->
     <div class="logo-container text-center">
       <picture>
         <img src="/assets/img/logo.png" alt="logo Loket SP" class="img-fluid logo-image" width="80" height="80" />
@@ -34,8 +35,8 @@ const logout = async () => {
       <div class="app-name">BADAN PERTANAHAN NASIONAL</div>
     </div>
 
-    <!-- Hanya tampil jika bukan halaman alih-media -->
-    <nav v-if="route.path !== '/alih-media'" class="navbar navbar-expand-lg">
+    <!-- Navbar, tampil kalau bukan di halaman alih-media & penyelesaian -->
+    <nav v-if="route.path !== '/alih-media' && route.path !== '/alih-media/penyelesaian'" class="navbar navbar-expand-lg">
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -50,7 +51,7 @@ const logout = async () => {
             <nuxt-link class="nav-link" to="/loket">Loket</nuxt-link>
           </li>
           <li class="nav-item">
-            <nuxt-link class="nav-link" to="/surat"> Surat Tugas</nuxt-link>
+            <nuxt-link class="nav-link" to="/surat">Surat Tugas</nuxt-link>
           </li>
           <li class="nav-item">
             <nuxt-link class="nav-link" to="/pemetaan">Pemetaan</nuxt-link>

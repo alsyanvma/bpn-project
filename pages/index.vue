@@ -1,109 +1,188 @@
+<template>
+  <div class="flex flex-col gap-12 py-8">
+    <!-- Dropdown Pilihan Aplikasi -->
+    <div class="flex items-center gap-4 mb-6 px-4">
+      <label for="appSelect" class="text-lg font-medium text-gray-600">Pilih Aplikasi:</label>
+      <select id="appSelect" v-model="selectedApp" @change="navigateApp"
+        class="transition-all duration-300 ease-in-out border border-gray-300 rounded-lg shadow-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-indigo-400">
+        <option value="index">Rutin</option>
+        <option value="alih-media">Alih - Media</option>
+      </select>
+    </div>
+
+    <!-- Judul -->
+    <h2 class="text-3xl font-bold text-center text-gray-800">LAYANAN RUTIN</h2>
+
+    <!-- Statistik Pie Chart -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
+      <div
+        v-for="(data, jenis) in chartStatusData"
+        :key="jenis"
+        class="bg-white p-6 rounded-lg shadow-md animate-slideIn"
+      >
+        <h4 class="text-center text-xl font-semibold text-gray-700 mb-1">{{ jenis }}</h4>
+        <p class="text-center text-sm text-gray-600 mb-2">Total: {{ data.selesai + data.onProgress }}</p>
+        <PieChart
+          :data="{
+            labels: ['Selesai', 'On Progress'],
+            datasets: [{
+              data: [data.selesai, data.onProgress],
+              backgroundColor: ['#22c55e', '#f97316']
+            }]
+          }"
+          class="max-w-[240px] mx-auto"
+        />
+      </div>
+    </div>
+
+    <!-- Tabel Progres Harian -->
+    <div class="w-full max-w-5xl mx-auto mt-10 px-4">
+      <h3 class="text-2xl font-semibold text-gray-800 mb-4 text-center">Tabel Progres Harian</h3>
+      <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-md overflow-hidden">
+        <thead class="bg-gray-100 text-gray-700 text-left">
+          <tr>
+            <th class="px-6 py-3 border-b text-center">Tanggal</th>
+            <th class="px-6 py-3 border-b text-center">Selesai</th>
+            <th class="px-6 py-3 border-b text-center">Dalam Perkembangan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in dailyProgress"
+            :key="item.tanggal"
+            class="hover:bg-gray-50 text-center"
+          >
+            <td class="px-6 py-3 border-b">{{ item.tanggal }}</td>
+            <td class="px-6 py-3 border-b text-green-600 font-semibold">{{ item.selesai }}</td>
+            <td class="px-6 py-3 border-b text-orange-500 font-semibold">{{ item.onProgress }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
 <script setup>
 import { ref, onMounted, defineAsyncComponent } from 'vue';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, LineElement, PointElement } from 'chart.js';
+import { useRouter } from 'vue-router';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js';
 import { createClient } from '@supabase/supabase-js';
 
-definePageMeta({
-  middleware: 'auth'
-});
-// 🚀 Cek status login saat halaman dimuat
+definePageMeta({ middleware: 'auth' });
+
+const supabase = createClient(
+  'https://wkdrasssmmjpchxsgdua.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZHJhc3NzbW1qcGNoeHNnZHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0Njg0NjQsImV4cCI6MjA1NjA0NDQ2NH0.eOZPhW3JchXxrUSBDYCEwuZeDJ9ulrKBJvr75svxHy8'
+);
+
+ChartJS.register(Title, Tooltip, Legend, ArcElement);
+
+const PieChart = defineAsyncComponent(() => import('vue-chartjs').then(m => m.Pie));
+
+const chartStatusData = ref({});
+const dailyProgress = ref([]);
+const router = useRouter();
+const selectedApp = ref('index');
+
+const navigateApp = () => {
+  router.push(`/${selectedApp.value}`);
+};
+
 onMounted(async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    router.push('/login');  // Redirect ke login jika belum masuk
-  } else {
-    fetchLoket();  // Hanya fetch data jika sudah login
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (!session || error) {
+    router.push('/login');
+    return;
   }
+  fetchStatistics();
+  fetchDailyTable();
 });
-
-definePageMeta({
-  middleware: 'auth' // 🔥 Middleware auth agar halaman hanya bisa diakses jika user sudah login
-});
-
-// Registrasi Chart.js
-ChartJS.register(Title, Tooltip, Legend, BarElement, LineElement, CategoryScale, LinearScale, PointElement);
-
-// Lazy Load Chart
-const BarChart = defineAsyncComponent(() => import('vue-chartjs').then(m => m.Bar));
-const LineChart = defineAsyncComponent(() => import('vue-chartjs').then(m => m.Line));
-
-// Inisialisasi Supabase
-const supabaseUrl = 'https://wkdrasssmmjpchxsgdua.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZHJhc3NzbW1qcGNoeHNnZHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0Njg0NjQsImV4cCI6MjA1NjA0NDQ2NH0.eOZPhW3JchXxrUSBDYCEwuZeDJ9ulrKBJvr75svxHy8';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const chartData = ref({ labels: [], datasets: [] });
 
 const fetchStatistics = async () => {
   const { data, error } = await supabase.from('loket').select('*');
   if (error) {
-    console.error('Error fetching data:', error);
+    console.error('Gagal ambil data:', error);
     return;
   }
 
-  const fields = {
-    'No Surat': 'no_surat',
-    'No Berkas': 'no_berkas',
-    'Nama Pemohon': 'nama_pemohon',
-    'Jenis Permohonan': 'jenis_permohonan',
-    'No 302': 'no302',
-    'Nama Petugas': 'nama_petugas'
-  };
+  const jenisList = ['PBT', 'Pemecahan', 'Pemisahan', 'Penggabungan', 'Penataan Batas'];
+  const result = {};
 
-  const groupedData = Object.fromEntries(Object.keys(fields).map(key => [key, 0]));
-  data.forEach(entry => {
-    Object.entries(fields).forEach(([label, field]) => {
-      if (entry[field]) groupedData[label] += 1;
-    });
+  jenisList.forEach(jenis => {
+    result[jenis] = { selesai: 0, onProgress: 0 };
   });
 
-  const graphColors = ['#2e4259', '#2e4259', '#2e4259', '#2e4259', '#2e4259', '#2e4259'];
+  data.forEach(item => {
+    const jenis = item.jenis_permohonan;
+    if (!jenisList.includes(jenis)) return;
 
-  chartData.value = {
-    labels: Object.keys(groupedData),
-    datasets: [{
-      label: 'Jumlah Data',
-      data: Object.values(groupedData),
-      backgroundColor: graphColors,
-      borderColor: graphColors.map(color => color.replace('0.6', '1')),
-      borderWidth: 1
-    }]
-  };
+    const isSelesai = item.no_surat && item.tgl_selesai && item.petugas_ukur;
+    if (isSelesai) {
+      result[jenis].selesai += 1;
+    } else {
+      result[jenis].onProgress += 1;
+    }
+  });
+
+  chartStatusData.value = result;
 };
 
-onMounted(fetchStatistics);
+const fetchDailyTable = async () => {
+  const { data, error } = await supabase.from('loket').select('*');
+  if (error) {
+    console.error('Gagal ambil data harian:', error);
+    return;
+  }
+
+  const progressMap = {};
+
+  data.forEach(item => {
+    const tanggal = item.tanggal
+      ? new Date(item.tanggal).toLocaleDateString('id-ID')
+      : 'Tidak diketahui';
+
+    if (!progressMap[tanggal]) {
+      progressMap[tanggal] = { selesai: 0, onProgress: 0 };
+    }
+
+    const isSelesai = item.no_surat && item.tgl_selesai && item.petugas_ukur;
+    if (isSelesai) {
+      progressMap[tanggal].selesai += 1;
+    } else {
+      progressMap[tanggal].onProgress += 1;
+    }
+  });
+
+  // ubah ke array dan urutkan berdasarkan tanggal
+  dailyProgress.value = Object.entries(progressMap)
+    .map(([tanggal, count]) => ({
+      tanggal,
+      selesai: count.selesai,
+      onProgress: count.onProgress
+    }))
+    .sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+};
 </script>
 
-<template>
- <div class="flex flex-col gap-8">
-        <div class="bg-gray-50 p-6 rounded-lg shadow-md animate-slideIn">
-          <h3 class="text-2xl font-semibold text-center text-gray-700 mb-4">📈 Grafik Batang</h3>
-          <BarChart v-if="chartData.labels.length" :data="chartData" class="w-full"/>
-          <p v-else class="text-gray-500 text-center">Tidak ada data tersedia.</p>
-        </div>
-
-        <div class="bg-gray-50 p-6 rounded-lg shadow-md animate-slideIn delay-200">
-          <h3 class="text-2xl font-semibold text-center text-gray-700 mb-4">📉 Grafik Garis</h3>
-          <LineChart v-if="chartData.labels.length" :data="chartData" class="w-full"/>
-          <p v-else class="text-gray-500 text-center">Tidak ada data tersedia.</p>
-        </div>
-      </div>
-</template>
-
 <style scoped>
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.animate-fadeIn {
-  animation: fadeIn 1s ease-out;
+.animate-slideIn {
+  animation: slideIn 0.6s ease forwards;
 }
 
 @keyframes slideIn {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-slideIn {
-  animation: slideIn 0.8s ease-out;
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
