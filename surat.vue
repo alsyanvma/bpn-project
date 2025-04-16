@@ -17,13 +17,15 @@
             <input type="text" id="loketNoSurat" v-model="editData.no_surat" required />
           </div>
 
-          <select v-model="editData.nama_petugas">
-            <option value=""> Pilih Petugas </option>
+          <div class="form-group">
+          <label for="namaPetugas">Pilih Petugas:</label>
+          <select id="namaPetugas" v-model="editData.nama_petugas" class="select-input">
+            <option value="">Pilih Petugas</option>
             <option v-for="petugas in petugasList" :key="petugas.id" :value="petugas.nama">
               {{ petugas.nama }}
             </option>
           </select>
-
+        </div>
 
           <div class="form-actions">
             <button type="submit" class="submit-btn">Simpan</button>
@@ -62,17 +64,20 @@
           </tr>
           <!-- Menampilkan data jika ada hasil pencarian -->
           <tr v-for="(loket, index) in filteredSuratList" :key="index">
-            <td>{{ loket.no_surat || '-' }}</td>
-            <td>{{ loket.no_berkas || '-' }}</td>
-            <td>{{ loket.nama_pemohon || '-' }}</td>
-            <td>{{ loket.jenis_permohonan || '-' }}</td>
-            <td>{{ loket.nama_petugas || '-' }}</td>
-            <td>{{ loket.no302 || '-' }}</td>
-            <td>{{ loket.tanggal || '-' }}</td>
-            <td>
-              <button @click="editSurat(loket)" class="edit-btn">Edit</button>
-            </td>
-          </tr>
+            <td :class="{ 'empty-cell': !loket.no_surat }">{{ loket.no_surat || 'Kosong' }}</td>
+            <td :class="{ 'empty-cell': !loket.no_berkas }">{{ loket.no_berkas || 'Kosong' }}</td>
+            <td :class="{ 'empty-cell': !loket.nama_pemohon }">{{ loket.nama_pemohon || 'Kosong' }}</td>
+            <td :class="{ 'empty-cell': !loket.jenis_permohonan }">{{ loket.jenis_permohonan || 'Kosong' }}</td>
+            <td :class="{ 'empty-cell': !loket.nama_petugas }">{{ loket.nama_petugas || 'Kosong' }}</td>
+            <td :class="{ 'empty-cell': !loket.no302 }">{{ loket.no302 || 'Kosong' }}</td>
+            <td :class="{ 'empty-cell': !loket.tanggal }">{{ formatTanggal(loket.tanggal) }}</td>
+
+
+          <td>
+            <button @click="editSurat(loket)" class="edit-btn">Edit</button>
+          </td>
+        </tr>
+
         </tbody>
 
       </table>
@@ -91,6 +96,13 @@ const searchDate = ref('');
 const showSuratPopup = ref(false);
 const editData = ref({ no_surat: '', nama_petugas: '', no_berkas: '' });
 const searchPerformed = ref(false);
+
+const formatTanggal = (tanggalStr) => {
+  if (!tanggalStr) return 'Kosong';
+  const date = new Date(tanggalStr);
+  const options = { day: '2-digit', month: 'short', year: 'numeric' };
+  return date.toLocaleDateString('id-ID', options);
+};
 
 
 const fetchLoket = async () => {
@@ -125,19 +137,28 @@ const filteredSuratList = computed(() => {
   searchPerformed.value = true;
 
   const query = searchQuery.value.toLowerCase();
+
   return loketList.value.filter(loket => {
-    return (
+    const tanggalFormatted = loket.tanggal
+      ? new Date(loket.tanggal).toISOString().split('T')[0]
+      : '';
+
+    const matchesText =
       (loket.no_surat && String(loket.no_surat).toLowerCase().includes(query)) ||
       (loket.no_berkas && String(loket.no_berkas).toLowerCase().includes(query)) ||
       (loket.nama_pemohon && String(loket.nama_pemohon).toLowerCase().includes(query)) ||
       (loket.jenis_permohonan && String(loket.jenis_permohonan).toLowerCase().includes(query)) ||
       (loket.no302 && String(loket.no302).toLowerCase().includes(query)) ||
-      (loket.tanggal && String(loket.tanggal).toLowerCase().includes(query)) ||
-      (loket.nama_petugas && loket.nama_petugas.toLowerCase().includes(query)) ||
-      (searchDate.value && loket.tanggal === searchDate.value)
-    );
+      (loket.nama_petugas && loket.nama_petugas.toLowerCase().includes(query));
+
+    const matchesDate = searchDate.value
+      ? tanggalFormatted === searchDate.value
+      : true;
+
+    return matchesText && matchesDate;
   });
 });
+
 
 
 const editSurat = (loket) => {
@@ -177,6 +198,8 @@ const submitSuratForm = async () => {
     alert(`Terjadi kesalahan: ${error.message}`);
   }
 };
+
+
 </script>
 
 
@@ -190,6 +213,32 @@ const submitSuratForm = async () => {
   color: #888;
   margin-top: 10px;
 }
+
+.empty-cell {
+  color: #ff0000;
+  font-weight: bold;
+}
+
+.select-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  background-color: white;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
+}
+
+.empty-cell {
+  font-weight: bold;
+  text-align: center;
+}
+
+
 
 .date-input {
   padding: 10px;

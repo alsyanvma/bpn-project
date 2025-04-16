@@ -172,12 +172,24 @@ const fetchDropdownData = async () => {
 // Filter pencarian: hanya tampilkan data jika ada kata kunci pencarian
 const filteredData = computed(() => {
   if (!searchTerm.value) return []
-  return alihMediaData.value.filter(item =>
-    Object.values(item).some(val =>
-      String(val).toLowerCase().includes(searchTerm.value.toLowerCase())
+
+  return alihMediaData.value.filter(item => {
+    const lowerSearch = searchTerm.value.toLowerCase()
+    
+    return (
+      (item.jenis_hak || '').toString().toLowerCase().includes(lowerSearch) ||
+      (item.no_sertifikat || '').toString().toLowerCase().includes(lowerSearch) ||
+      (item.kecamatan?.nama_kecamatan || '').toLowerCase().includes(lowerSearch) ||
+      (item.kelurahan?.nama_kelurahan || '').toLowerCase().includes(lowerSearch) ||
+      (item.nama_pemohon || '').toLowerCase().includes(lowerSearch) ||
+      (item.petugas_pemetaan?.nama || '').toLowerCase().includes(lowerSearch) ||
+      (item.keterangan_relasi?.keterangan || '').toLowerCase().includes(lowerSearch) ||
+      (formatDate(item.tanggal_pemetaan) || '').toLowerCase().includes(lowerSearch) ||
+      (formatDate(item.tanggal_penyelesaian) || '').toLowerCase().includes(lowerSearch)
     )
-  )
+  })
 })
+
 
 // Membuka popup edit untuk penyelesaian
 const openPopup = (item) => {
