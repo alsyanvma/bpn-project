@@ -6,7 +6,7 @@
       <input type="date" v-model="searchDate" class="date-input" />
     </div>
 
-    <!-- Tabel (Tetap ada meskipun tidak ada pencarian) -->
+    <!-- Tabel -->
     <div class="table-container">
       <table class="table">
         <thead>
@@ -24,29 +24,34 @@
           </tr>
         </thead>
         <tbody>
-          <template v-if="searchQuery || searchDate">
-            <tr v-for="loket in filteredData" :key="loket.id">
-              <td>{{ loket.no_surat || '-' }}</td>
-              <td>{{ loket.no_berkas || '-' }}</td>
-              <td>{{ loket.nama_pemohon }}</td>
-              <td>{{ loket.jenis_permohonan }}</td>
-              <td>{{ loket.nama_petugas || '-' }}</td>
-              <td>{{ loket.petugas_pemetaan || 'Tidak Ditemukan' }}</td>
-              <td>{{ loket.no302 || '-' }}</td>
-              <td>{{ loket.tanggal || '-' }}</td>
-              <td>{{ loket.tanggalp ? new Date(loket.tanggalp).toLocaleDateString('id-ID') : '-' }}</td>
-              <td>
-                <button @click="editItem(loket)" class="btn-edit">Edit</button>
-              </td>
-            </tr>
-            <tr v-if="filteredData.length === 0">
-              <td colspan="10" class="no-data">Tidak ada data tersedia</td>
-            </tr>
-          </template>
-          <tr v-else>
-            <td colspan="10" class="no-data">Silakan lakukan pencarian untuk menampilkan data</td>
+        <template v-if="searchQuery || searchDate">
+          <tr v-for="loket in filteredData" :key="loket.id">
+            <td :class="{ kosong: !loket.no_surat }">{{ loket.no_surat || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.no_berkas }">{{ loket.no_berkas || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.nama_pemohon }">{{ loket.nama_pemohon || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.jenis_permohonan }">{{ loket.jenis_permohonan || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.nama_petugas }">{{ loket.nama_petugas || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.petugas_pemetaan }">{{ loket.petugas_pemetaan || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.no302 }">{{ loket.no302 || 'Kosong' }}</td>
+            <td :class="{ kosong: !loket.tanggal }">
+              {{ loket.tanggal ? formatTanggal(loket.tanggal) : 'Kosong' }}
+            </td>
+            <td :class="{ kosong: !loket.tanggalp }">
+              {{ loket.tanggalp ? formatTanggal(loket.tanggalp) : 'Kosong' }}
+            </td>
+            <td>
+              <button @click="editItem(loket)" class="btn-edit">Edit</button>
+            </td>
           </tr>
-        </tbody>
+          <tr v-if="filteredData.length === 0">
+            <td colspan="10" class="no-data">Tidak ada data tersedia</td>
+          </tr>
+        </template>
+        <tr v-else>
+          <td colspan="10" class="no-data">Silakan lakukan pencarian untuk menampilkan data</td>
+        </tr>
+      </tbody>
+
       </table>
     </div>
 
@@ -55,33 +60,34 @@
       <div class="popup-container large">
         <h2 class="popup-title">Edit Pemetaan</h2>
 
-    <div class="form-group">
-      <label class="label">Tanggal di Serahkan ke Pemetaan:</label>
-      <input type="date" v-model="editData.tanggalp" class="input" />
-    </div>
+        <div class="form-group">
+          <label class="label">Tanggal di Serahkan ke Pemetaan:</label>
+          <input type="date" v-model="editData.tanggalp" class="date-input-field" />
+        </div>
 
-      <div class="form-group">
-      <label class="label">Nama Petugas Pemetaan:</label>
-      <select v-model="editData.petugas_pemetaan" class="input">
-        <option
-          v-for="petugas_pemetaan in daftarPetugasPemetaan"
-          :key="petugas_pemetaan.id"
-          :value="petugas_pemetaan.nama"
-        >
-          {{ petugas_pemetaan.nama }}
-        </option>
-      </select>
-    </div>
+        <div class="form-group">
+          <label class="label">Nama Petugas Pemetaan:</label>
+          <select v-model="editData.petugas_pemetaan" class="select-input">
+            <option value="">Pilih Petugas</option>
+            <option
+              v-for="petugas in daftarPetugasPemetaan"
+              :key="petugas.id"
+              :value="petugas.nama"
+            >
+              {{ petugas.nama }}
+            </option>
+          </select>
+        </div>
 
         <div class="popup-actions">
           <button @click="simpanEdit" class="submit-btn">Simpan</button>
           <button @click="showPopup = false" class="cancel-btn">Batal</button>
-
         </div>
       </div>
     </div>
   </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
@@ -102,6 +108,15 @@ const fetchPemetaan = async () => {
   }
   console.log('Data Loket:', data); // Tambahkan ini untuk debug
   dataPemetaan.value = data;
+};
+
+const formatTanggal = (tanggal) => {
+  const bulanSingkat = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const dateObj = new Date(tanggal);
+  const hari = dateObj.getDate();
+  const bulan = bulanSingkat[dateObj.getMonth()];
+  const tahun = dateObj.getFullYear();
+  return `${hari} ${bulan} ${tahun}`;
 };
 
 
@@ -159,22 +174,35 @@ const simpanEdit = async () => {
 
 // ✅ **Fungsi Filter Data Pemetaan**
 const filteredData = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim();
+  const date = searchDate.value;
+
   return dataPemetaan.value.filter((item) => {
-    const query = searchQuery.value.toLowerCase();
-    const queryMatch = query
-      ? (String(item.nama_pemohon) || '').toLowerCase().includes(query) ||
-      (String(item.jenis_permohonan) || '').toLowerCase().includes(query) ||
-      (String(item.no_surat) || '').toLowerCase().includes(query) ||
-      (String(item.no_berkas) || '').toLowerCase().includes(query)
-      : false;
+    // Ambil semua field, pastikan dijadikan string dengan fallback
+    const fields = [
+      item.no_surat ?? '',
+      item.no_berkas ?? '',
+      item.nama_pemohon ?? '',
+      item.jenis_permohonan ?? '',
+      item.nama_petugas ?? '',
+      item.petugas_pemetaan ?? '',
+      item.no302 ?? '',
+    ];
 
-    const dateMatch = searchDate.value
-      ? new Date(item.tanggal).toISOString().split('T')[0] === searchDate.value
-      : false;
+    const combined = fields.map(val => val.toString().toLowerCase()).join(' ');
 
-    return queryMatch || dateMatch;
+    const matchQuery = query ? combined.includes(query) : true;
+
+    const matchDate = date
+      ? item.tanggal && new Date(item.tanggal).toISOString().split('T')[0] === date
+      : true;
+
+    return matchQuery && matchDate;
   });
 });
+
+
+
 
 // ✅ **Fetch data saat komponen dimuat**
 onMounted(async () => {
@@ -193,6 +221,48 @@ onMounted(async () => {
   margin: 20px auto;
   padding: 20px;
 }
+
+.kosong {
+  background-color: #fff3cd; /* kuning muda */
+  color: #d8000c; /* merah */
+  font-weight: bold;
+}
+
+
+.select-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  background-color: white;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
+}
+
+.date-input-field {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  color: #333;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+}
+
+
 
 /* Pencarian */
 .search-container {

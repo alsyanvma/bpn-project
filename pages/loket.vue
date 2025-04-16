@@ -16,8 +16,10 @@
         <h3>Tambah Loket</h3>
         <form @submit.prevent="submitLoketForm">
           <div class="form-group">
-            <label for="loketFileNumber">No Berkas:</label>
-            <input type="text" id="loketFileNumber" v-model="newLoket.no_berkas" required />
+            <div class="form-group">
+              <label for="loketFileNumber">No Berkas:</label>
+              <input type="text" id="loketFileNumber" v-model="newLoket.no_berkas" required />
+            </div>
           </div>
 
           <div class="form-group">
@@ -25,16 +27,15 @@
             <input type="text" id="loketApplicantName" v-model="newLoket.nama_pemohon" required />
           </div>
 
-          <div class="form-group">
-            <select v-model="newLoket.jenis_permohonan" required>
-            <option value="" disabled>Pilih Jenis Permohonan</option>
-            <option v-for="permohonan in permohonanList" :key="permohonan.permohonan" :value="permohonan.permohonan">
-              {{ permohonan.permohonan || "Data tidak tersedia" }}
-            </option>
-          </select>
-
-
-          </div>
+            <div class="form-group">
+              <label for="jenisPermohonan">Jenis Permohonan:</label>
+              <select id="jenisPermohonan" v-model="newLoket.jenis_permohonan" required>
+                <option value="" disabled>Pilih Jenis Permohonan</option>
+                <option v-for="permohonan in permohonanList" :key="permohonan.permohonan" :value="permohonan.permohonan">
+                  {{ permohonan.permohonan || "Data tidak tersedia" }}
+                </option>
+              </select>
+            </div>
           <div class="form-group">
             <label for="loketNo302">No 302:</label>
             <input type="text" id="loketNo302" v-model="newLoket.no302" required />
@@ -86,7 +87,7 @@
           <td>{{ loket.nama_pemohon }}</td>
           <td>{{ loket.jenis_permohonan }}</td>
           <td>{{ loket.no302 }}</td>
-          <td>{{ loket.tanggal }}</td>
+          <td>{{ formatTanggal(loket.tanggal) }}</td>
           <td>
             <button @click="editLoket(loket)" class="edit-btn">Edit</button>
             <button @click="deleteLoket(loket.id)" class="delete-btn">Hapus</button>
@@ -125,6 +126,17 @@ const newLoket = ref({
   tanggal: ''
 });
 
+const formatTanggal = (tanggalStr) => {
+  if (!tanggalStr) return '-';
+  const bulanList = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const tanggal = new Date(tanggalStr);
+
+  const hari = tanggal.getDate();
+  const bulan = bulanList[tanggal.getMonth()];
+  const tahun = tanggal.getFullYear();
+
+  return `${hari} ${bulan} ${tahun}`;
+};
 
 // 🚀 Cek login pengguna saat halaman dimuat
 // 🚀 Ambil data dari Supabase
@@ -209,12 +221,15 @@ const submitLoketForm = async () => {
     }
 
     const payload = {
-      no_berkas: String(newLoket.value.no_berkas).trim(),
+      no_berkas: String(newLoket.value.no_berkas).trim(), // ✅ Simpan sebagai string
       nama_pemohon: String(newLoket.value.nama_pemohon).trim(),
       jenis_permohonan: String(newLoket.value.jenis_permohonan).trim(),
       no302: String(newLoket.value.no302).trim(),
       tanggal: newLoket.value.tanggal
     };
+
+
+
 
     let error;
     if (newLoket.value.id) {
@@ -312,6 +327,21 @@ const closeLoketPopup = () => {
   margin: 0;
   padding: 20px;
 }
+
+select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  appearance: none;
+  background-color: white;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon fill='%23666' points='70,100 20,40 120,40'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
 
 h2 {
   text-align: center;

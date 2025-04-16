@@ -321,15 +321,23 @@ const filteredData = computed(() => {
   if (!searchTerm.value) {
     return alihMediaData.value
   }
-  return alihMediaData.value.filter(item =>
-    item.jenis_hak.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-    item.no_sertifikat.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-    (item.kecamatan?.nama_kecamatan || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-    (item.kelurahan?.nama_kelurahan || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-    item.nama_pemohon.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-    (item.petugas_pemetaan?.nama || '').toLowerCase().includes(searchTerm.value.toLowerCase())
-  )
+
+  const term = searchTerm.value.toLowerCase()
+
+  return alihMediaData.value.filter(item => {
+    return [
+      item.jenis_hak,
+      item.no_sertifikat,
+      item.nama_pemohon,
+      item.kecamatan?.nama_kecamatan,
+      item.kelurahan?.nama_kelurahan,
+      item.petugas_pemetaan?.nama,
+      item.tanggal_pemetaan,
+      item.tanggal_penyelesaian
+    ].some(field => (field || '').toString().toLowerCase().includes(term))
+  })
 })
+
 
 
 // Data belum input petugas

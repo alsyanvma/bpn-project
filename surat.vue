@@ -1,10 +1,19 @@
 <template>
   <div class="surat-table-container">
     <div class="search-container">
-      <div class="search-wrapper">
-        <input type="text" v-model.trim="searchQuery" placeholder="Cari Surat..." class="search-input" />
-        <div class="date-wrapper">
-          <input type="date" v-model="searchDate" class="date-input" />
+  <div class="search-wrapper">
+    <input
+      type="text"
+      v-model.trim="searchQuery"
+      placeholder="Cari Surat..."
+      class="search-input"
+    />
+    <div class="date-wrapper">
+      <input
+        type="date"
+        v-model="searchDate"
+        class="date-input"
+      />
         </div>
       </div>
     </div>
@@ -16,17 +25,15 @@
             <label for="loketNoSurat">No Surat:</label>
             <input type="text" id="loketNoSurat" v-model="editData.no_surat" required />
           </div>
-
-          <div class="form-group">
-          <label for="namaPetugas">Pilih Petugas:</label>
-          <select id="namaPetugas" v-model="editData.nama_petugas" class="select-input">
-            <option value="">Pilih Petugas</option>
-            <option v-for="petugas in petugasList" :key="petugas.id" :value="petugas.nama">
+          
+          <label for="namaPetugas">Nama Petugas:</label>
+          <select v-model="editData.nama_petugas">
+            <option value=""> Pilih Petugas </option>
+            <option v-for="petugas in petugasList" :key="petugas.id" :value="petugas.id">
               {{ petugas.nama }}
             </option>
           </select>
-        </div>
-
+          
           <div class="form-actions">
             <button type="submit" class="submit-btn">Simpan</button>
             <button type="button" class="cancel-btn" @click="closeSuratPopup">Batal</button>
@@ -43,50 +50,36 @@
             <th>No Berkas</th>
             <th>Nama Pemohon</th>
             <th>Jenis Permohonan</th>
-            <th>Nama Petugas</th>
             <th>No 302</th>
             <th>Tanggal</th>
+            <th>Nama Petugas</th>
             <th>Aksi</th>
           </tr>
         </thead>
         <tbody>
-          <!-- Jika belum melakukan pencarian -->
-          <tr v-if="!searchPerformed">
-            <td colspan="8" style="text-align: center; padding: 20px; color: #777; ">
-              Silakan lakukan pencarian untuk menampilkan data
-            </td>
+          <tr v-if="searchPerformed && filteredSuratList.length === 0">
+            <td colspan="8" class="no-data">Data tidak ada</td>
           </tr>
-          <!-- Jika pencarian sudah dilakukan tapi tidak ada data yang cocok -->
-          <tr v-else-if="filteredSuratList.length === 0">
-            <td colspan="8" style="text-align: center; padding: 20px; color: #777;">
-              Tidak ada data tersedia
-            </td>
-          </tr>
-          <!-- Menampilkan data jika ada hasil pencarian -->
           <tr v-for="(loket, index) in filteredSuratList" :key="index">
-            <td :class="{ 'empty-cell': !loket.no_surat }">{{ loket.no_surat || 'Kosong' }}</td>
-            <td :class="{ 'empty-cell': !loket.no_berkas }">{{ loket.no_berkas || 'Kosong' }}</td>
-            <td :class="{ 'empty-cell': !loket.nama_pemohon }">{{ loket.nama_pemohon || 'Kosong' }}</td>
-            <td :class="{ 'empty-cell': !loket.jenis_permohonan }">{{ loket.jenis_permohonan || 'Kosong' }}</td>
-            <td :class="{ 'empty-cell': !loket.nama_petugas }">{{ loket.nama_petugas || 'Kosong' }}</td>
-            <td :class="{ 'empty-cell': !loket.no302 }">{{ loket.no302 || 'Kosong' }}</td>
-            <td :class="{ 'empty-cell': !loket.tanggal }">{{ formatTanggal(loket.tanggal) }}</td>
-
-
-          <td>
-            <button @click="editSurat(loket)" class="edit-btn">Edit</button>
-          </td>
-        </tr>
-
+            <td>{{ loket.no_surat || '-' }}</td>
+            <td>{{ loket.no_berkas || '-' }}</td>
+            <td>{{ loket.nama_pemohon || '-' }}</td>
+            <td>{{ loket.jenis_permohonan || '-' }}</td>
+            <td>{{ loket.no302 || '-' }}</td>
+            <td>{{ loket.tanggal || '-' }}</td>
+            <td>{{ getNamaPetugas(loket.nama_petugas) || '-' }}</td>
+            <td>
+              <button @click="editSurat(loket)" class="edit-btn">Edit</button>
+            </td>
+          </tr>
         </tbody>
-
       </table>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { supabase } from '@/plugins/supabase';
 
 const loketList = ref([]);
@@ -97,19 +90,16 @@ const showSuratPopup = ref(false);
 const editData = ref({ no_surat: '', nama_petugas: '', no_berkas: '' });
 const searchPerformed = ref(false);
 
-const formatTanggal = (tanggalStr) => {
-  if (!tanggalStr) return 'Kosong';
-  const date = new Date(tanggalStr);
-  const options = { day: '2-digit', month: 'short', year: 'numeric' };
-  return date.toLocaleDateString('id-ID', options);
-};
-
+definePageMeta({
+  middleware: 'auth'
+});
 
 const fetchLoket = async () => {
   try {
     const { data, error } = await supabase.from('loket').select('*');
     if (error) throw error;
     loketList.value = data || [];
+    await nextTick();
   } catch (error) {
     console.error('Error fetching loket:', error);
   }
@@ -125,41 +115,34 @@ const fetchPetugas = async () => {
   }
 };
 
+const getNamaPetugas = (idPetugas) => {
+  const petugas = petugasList.value.find(p => p.id == idPetugas);
+  return petugas ? petugas.nama : 'Tidak Ditemukan';
+};
+
 onMounted(async () => {
   await fetchPetugas();
   await fetchLoket();
 });
+
 const filteredSuratList = computed(() => {
-  if (!searchQuery.value.trim() && !searchDate.value) {
-    searchPerformed.value = false;
-    return [];
-  }
+  if (!searchQuery.value.trim() && !searchDate.value) return [];
   searchPerformed.value = true;
 
   const query = searchQuery.value.toLowerCase();
-
   return loketList.value.filter(loket => {
-    const tanggalFormatted = loket.tanggal
-      ? new Date(loket.tanggal).toISOString().split('T')[0]
-      : '';
-
-    const matchesText =
+    return (
       (loket.no_surat && String(loket.no_surat).toLowerCase().includes(query)) ||
       (loket.no_berkas && String(loket.no_berkas).toLowerCase().includes(query)) ||
       (loket.nama_pemohon && String(loket.nama_pemohon).toLowerCase().includes(query)) ||
       (loket.jenis_permohonan && String(loket.jenis_permohonan).toLowerCase().includes(query)) ||
       (loket.no302 && String(loket.no302).toLowerCase().includes(query)) ||
-      (loket.nama_petugas && loket.nama_petugas.toLowerCase().includes(query));
-
-    const matchesDate = searchDate.value
-      ? tanggalFormatted === searchDate.value
-      : true;
-
-    return matchesText && matchesDate;
+      (loket.tanggal && String(loket.tanggal).toLowerCase().includes(query)) ||
+      (loket.nama_petugas && String(getNamaPetugas(loket.nama_petugas)).toLowerCase().includes(query)) ||
+      (searchDate.value && loket.tanggal === searchDate.value)
+    );
   });
 });
-
-
 
 const editSurat = (loket) => {
   editData.value = {
@@ -176,36 +159,34 @@ const closeSuratPopup = () => {
 
 const submitSuratForm = async () => {
   try {
-    console.log('Data yang akan diperbarui:', editData.value);
-
-    // Pastikan yang disimpan adalah nama petugas, bukan ID
     const { error } = await supabase
       .from('loket')
       .update({
         no_surat: editData.value.no_surat,
-        nama_petugas: editData.value.nama_petugas // Simpan sebagai teks
+        nama_petugas: editData.value.nama_petugas
       })
       .eq('no_berkas', editData.value.no_berkas);
 
     if (error) throw error;
 
-    console.log('Update berhasil!');
+    // **Cari Index Data di loketList dan Update Langsung**
+    const index = loketList.value.findIndex(loket => loket.no_berkas === editData.value.no_berkas);
+    if (index !== -1) {
+      loketList.value[index].no_surat = editData.value.no_surat;
+      loketList.value[index].nama_petugas = editData.value.nama_petugas;
+    }
+
+    // **Pastikan UI memperbarui tampilan setelah data diperbarui**
+    await nextTick();
+
     alert('Data berhasil diperbarui!');
     closeSuratPopup();
-    await fetchLoket(); // Refresh data setelah update
   } catch (error) {
     console.error('Error updating data:', error);
-    alert(`Terjadi kesalahan: ${error.message}`);
+    alert('Terjadi kesalahan saat menyimpan data');
   }
 };
-
-
 </script>
-
-
-
-
-
 <style scoped>
 .no-data {
   text-align: center;
@@ -213,32 +194,6 @@ const submitSuratForm = async () => {
   color: #888;
   margin-top: 10px;
 }
-
-.empty-cell {
-  color: #ff0000;
-  font-weight: bold;
-}
-
-.select-input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-  background-color: white;
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 18px;
-}
-
-.empty-cell {
-  font-weight: bold;
-  text-align: center;
-}
-
-
 
 .date-input {
   padding: 10px;
@@ -252,184 +207,82 @@ const submitSuratForm = async () => {
   padding: 20px;
 }
 
-.surat-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.surat-table th,
-.surat-table td {
-  padding: 12px 15px;
-  text-align: left;
-}
-
-.surat-table th {
-  background-color: #a59e98;
-  color: white;
-  font-weight: bold;
-}
-
-.surat-table td {
-  background-color: #ccc;
-}
-
-.surat-table tr:nth-child(even) td {
-  background-color: #ccc;
-}
-
-.surat-table tr:hover td {
-  background-color: #dfdbd6;
-  cursor: pointer;
-}
-
-.surat-table td {
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #dac4c4;
-}
-
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-.loket-table-container {
-  width: 100%;
-  margin: 0;
-  padding: 20px;
-}
-
-h2 {
+.search-container {
   text-align: center;
-  margin-bottom: 20px;
-  color: #2c3e50;
-  font-family: 'Roboto', sans-serif;
+  margin-bottom: 30px;
 }
 
-.add-btn {
-  display: block;
-  width: 180px;
-  margin: 20px auto;
-  padding: 12px;
-  background-color: #1b1542;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.add-btn:hover {
-  background-color: #370874;
-}
-
-.search-container {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.surat-table-container {
-  width: 100%;
-  padding: 20px;
-}
-
-.search-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.search-wrapper {
-  display: flex;
-  gap: 10px;
-}
-
-.search-input,
-.date-input {
+.search-input {
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-.extra-input {
-  margin-top: 8px;
-  padding: 8px;
   width: 300px;
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  font-size: 14px;
-  text-align: center;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
 
 .table-wrapper {
   overflow-x: auto;
 }
 
+/* ============================= */
+/*  Hapus garis tabel dan buat lebih rapi  */
+/* ============================= */
 .loket-table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-collapse: separate; /* Ubah dari collapse ke separate */
+  border-spacing: 0; /* Hapus jarak antar sel */
 }
 
-.loket-table th,
-.loket-table td {
-  padding: 12px 15px;
+/* Hapus border di th dan td */
+.loket-table th, .loket-table td {
+  padding: 12px; /* Tambahkan padding agar lebih rapi */
   text-align: left;
+  border: none; /* Hapus garis pembatas */
 }
 
+/* Warna background header */
 .loket-table th {
   background-color: #a59e98;
   color: white;
   font-weight: bold;
 }
 
-.loket-table td {
-  background-color: #ecf0f1;
-}
-
-.loket-table tr:nth-child(even) td {
+/* Warna alternatif untuk baris */
+.loket-table tbody tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
+.loket-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+/* Efek hover untuk interaktif */
 .loket-table tr:hover td {
   background-color: #dfdbd6;
   cursor: pointer;
 }
 
-.loket-table td {
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-}
-
+/* ============================= */
+/*  Desain tombol edit lebih menarik  */
+/* ============================= */
 .edit-btn {
-  padding: 6px 12px;
-  font-size: 14px;
-  background-color: #fcb62c;
+  padding: 8px 14px;
+  background-color: #f39c12;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
+  font-size: 14px;
   cursor: pointer;
-}
-
-.delete-btn {
-  background-color: #f53621;
-  color: white;
+  transition: 0.3s;
 }
 
 .edit-btn:hover {
   background-color: #e67e22;
+  transform: scale(1.05);
 }
 
-/* Popup Styling */
+/* ============================= */
+/*  Popup Form Edit Nama Petugas  */
+/* ============================= */
 .popup-overlay {
   position: fixed;
   top: 0;
@@ -440,21 +293,22 @@ h2 {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
 }
 
 .popup-container {
   background-color: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 400px;
-  max-width: 100%;
+  border-radius: 10px;
+  width: 450px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .popup-container h3 {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  font-size: 20px;
+  color: #333;
 }
 
 .form-group {
@@ -465,45 +319,75 @@ h2 {
   display: block;
   font-weight: bold;
   margin-bottom: 5px;
+  color: #555;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+/* ============================= */
+/*  Desain tombol di popup lebih menarik  */
+/* ============================= */
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.submit-btn, .cancel-btn {
   padding: 10px;
   border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-}
-
-.form-actions {
-  text-align: center;
-}
-
-.submit-btn,
-.cancel-btn {
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-size: 16px;
-  margin: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 48%;
 }
 
 .submit-btn {
-  background-color: #3498db;
+  background-color: #28a745;
   color: white;
   border: none;
 }
 
 .submit-btn:hover {
-  background-color: #2980b9;
+  background-color: #218838;
+  transform: scale(1.05);
 }
 
 .cancel-btn {
-  background-color: #e74c3c;
+  background-color: #dc3545;
   color: white;
   border: none;
 }
 
 .cancel-btn:hover {
-  background-color: #c0392b;
+  background-color: #c82333;
+  transform: scale(1.05);
 }
+
+/* Animasi munculnya popup */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 </style>

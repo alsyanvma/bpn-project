@@ -28,17 +28,26 @@
             <tbody>
             <template v-if="searchQuery || searchDate">
             <tr v-for="item in filteredData" :key="item.id">
-                <td>{{ item.no_surat || '-' }}</td>
-                <td>{{ item.no_berkas || '-' }}</td>
-                <td>{{ item.nama_pemohon || '-' }}</td>
-                <td>{{ item.jenis_permohonan || '-' }}</td>
-                <td>{{ item.nama_petugas || '-' }}</td>
-                <td>{{ item.petugas_pemetaan || '-' }}</td>
-                <td>{{ item.no302 || '-' }}</td>
-                <td>{{ item.no307 || '-' }}</td>
-                <td>{{ item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-' }}</td>
-                <td>{{ item.tanggalp ? new Date(item.tanggalp).toLocaleDateString('id-ID') : '-' }}</td>
-                <td>{{ item.tanggal_penyelesaian ? new Date(item.tanggal_penyelesaian).toLocaleDateString('id-ID') : '-' }}</td>
+              <td :class="{ 'empty-cell': !item.no_surat }">{{ item.no_surat || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.no_berkas }">{{ item.no_berkas || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.nama_pemohon }">{{ item.nama_pemohon || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.jenis_permohonan }">{{ item.jenis_permohonan || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.nama_petugas }">{{ item.nama_petugas || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.petugas_pemetaan }">{{ item.petugas_pemetaan || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.no302 }">{{ item.no302 || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.no307 }">{{ item.no307 || 'Kosong' }}</td>
+              <td :class="{ 'empty-cell': !item.tanggal }">
+                {{ formatTanggalSingkat(item.tanggal) }}
+              </td>
+              <td :class="{ 'empty-cell': !item.tanggalp }">
+                {{ formatTanggalSingkat(item.tanggalp) }}
+              </td>
+              <td :class="{ 'empty-cell': !item.tanggal_penyelesaian }">
+                {{ formatTanggalSingkat(item.tanggal_penyelesaian) }}
+              </td>
+
+
+
                 <td>
                 <button class="btn-edit" @click="editItem(item)">Edit</button>
                 </td>
@@ -61,12 +70,12 @@
   
           <div class="form-group">
             <label class="label">No 307:</label>
-            <input type="text" v-model="editData.no307" class="input" />
+            <input type="text" v-model="editData.no307" class="input-field" />
           </div>
   
           <div class="form-group">
             <label class="label">Tanggal Penyelesaian:</label>
-            <input type="date" v-model="editData.tanggal_penyelesaian" class="input" />
+            <input type="date" v-model="editData.tanggal_penyelesaian" class="input-field" />
           </div>
   
           <div class="popup-actions">
@@ -93,6 +102,13 @@
     tanggal_penyelesaian: ''
   });
   
+  const formatTanggalSingkat = (tanggal) => {
+  if (!tanggal) return 'Kosong';
+  const options = { day: '2-digit', month: 'short', year: 'numeric' };
+  return new Date(tanggal).toLocaleDateString('id-ID', options);
+};
+
+
   // Ambil data dari Supabase
   const fetchPenyelesaian = async () => {
     const { data, error } = await supabase.from('loket').select('*');
@@ -179,6 +195,49 @@
     padding: 20px;
   }
   
+  .input-field {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  color: #333;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+}
+
+
+.search-input {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  color: #333;
+}
+
+.empty-cell {
+  font-weight: bold;
+  color: #ff0000;
+}
+
   .search-container {
     display: flex;
     justify-content: center;
