@@ -41,7 +41,6 @@
               <th>No Sertifikat</th>
               <th>Kecamatan</th>
               <th>Kelurahan</th>
-              <th>Nama Pemohon</th>
               <th>Petugas Pemetaan</th>
               <th>Tanggal ke Pemetaan</th>
               <th>Aksi</th>
@@ -68,7 +67,6 @@
               <td>{{ alih_media.no_sertifikat }}</td>
               <td>{{ alih_media.kecamatan?.nama_kecamatan }}</td>
               <td>{{ alih_media.kelurahan?.nama_kelurahan }}</td>
-              <td>{{ alih_media.nama_pemohon }}</td>
               <td>{{ alih_media.petugas_pemetaan?.nama }}</td>
               <td>{{ formatDate(alih_media.tanggal_pemetaan) }}</td>
               <td>
@@ -109,8 +107,6 @@
             {{ kel.nama_kelurahan }}
           </option>
         </select>
-        <label><strong>Nama Pemohon</strong></label>
-        <input v-model="editItem.nama_pemohon" type="text" />
         <label><strong>Petugas Pemetaan</strong></label>
         <select v-model="editItem.petugas_pemetaan_id">
           <option disabled value="">Pilih Petugas</option>
@@ -202,7 +198,6 @@ const newItem = ref({
   no_sertifikat: '',
   kecamatan_id: '',
   kelurahan_id: '',
-  nama_pemohon: '',
   petugas_pemetaan_id: '',
   tanggal_pemetaan: '',
   keterangan: '',
@@ -246,7 +241,6 @@ const openPopup = (item) => {
     no_sertifikat: item.no_sertifikat,
     kecamatan_id: item.kecamatan?.id || '',
     kelurahan_id: item.kelurahan?.id || '',
-    nama_pemohon: item.nama_pemohon,
     petugas_pemetaan_id: item.petugas_pemetaan?.id || '',
     tanggal_pemetaan: item.tanggal_pemetaan,
     tanggal_penyelesaian: item.tanggal_penyelesaian
@@ -262,7 +256,6 @@ const saveEdit = async () => {
     no_sertifikat,
     kecamatan_id: parseInt(kecamatan_id) || null,
     kelurahan_id: parseInt(kelurahan_id) || null,
-    nama_pemohon,
     petugas_pemetaan_id: parseInt(petugas_pemetaan_id) || null,
     tanggal_pemetaan,
     tanggal_penyelesaian
@@ -279,7 +272,6 @@ const saveNewItem = async () => {
     no_sertifikat: newItem.value.no_sertifikat,
     kecamatan_id: parseInt(newItem.value.kecamatan_id) || null,
     kelurahan_id: parseInt(newItem.value.kelurahan_id) || null,
-    nama_pemohon: newItem.value.nama_pemohon,
     petugas_pemetaan_id: parseInt(newItem.value.petugas_pemetaan_id) || null,
     tanggal_pemetaan: newItem.value.tanggal_pemetaan || null,
     keterangan: newItem.value.keterangan,
@@ -294,7 +286,6 @@ const saveNewItem = async () => {
       no_sertifikat: '',
       kecamatan_id: '',
       kelurahan_id: '',
-      nama_pemohon: '',
       petugas_pemetaan_id: '',
       tanggal_pemetaan: '',
       keterangan: '',
@@ -328,7 +319,6 @@ const filteredData = computed(() => {
     return [
       item.jenis_hak,
       item.no_sertifikat,
-      item.nama_pemohon,
       item.kecamatan?.nama_kecamatan,
       item.kelurahan?.nama_kelurahan,
       item.petugas_pemetaan?.nama,
