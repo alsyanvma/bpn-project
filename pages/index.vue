@@ -45,16 +45,16 @@
       <thead class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider rounded-t-lg">
         <tr>
           <th class="px-4 py-3 text-left">No Berkas</th>
-          <th class="px-4 py-3 text-left">Tanggal</th>
           <th class="px-4 py-3 text-left">Status</th>
+          <th class="px-4 py-3 text-left">Tanggal</th>
           <th class="px-4 py-3 text-left">Tanggal Selesai</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
         <tr v-for="item in loketSelesai" :key="item.id" class="hover:bg-gray-50">
           <td class="px-4 py-2 whitespace-nowrap">{{ item.no_berkas }}</td>
-          <td class="px-4 py-2">{{ item.tanggal }}</td>
           <td class="px-4 py-2 text-green-700 font-semibold">Selesai</td>
+          <td class="px-4 py-2">{{ item.tanggal }}</td>
           <td class="px-4 py-2">{{ item.tanggal_penyelesaian || '-' }}</td>
         </tr>
       </tbody>
@@ -62,42 +62,32 @@
   </div>
 
 
- <!-- Tabel Alih Media -->
-<h2 class="text-base font-semibold mt-8">📦 Penyelesaian Alih Media</h2>
-<div class="overflow-x-auto">
-  <table class="min-w-full mt-4 text-sm shadow rounded-lg overflow-hidden mx-auto w-fit">
-    <thead class="thead-alih">
-      <tr>
-        <th class="px-4 py-3 text-left">Jenis Hak</th>
-        <th class="px-4 py-3 text-left">No Sertifikat</th>
-        <th class="px-4 py-3 text-left">Kecamatan</th>
-        <th class="px-4 py-3 text-left">Kelurahan</th>
-        <th class="px-4 py-3 text-left">Nama Pemohon</th>
-        <th class="px-4 py-3 text-left">Petugas Pemetaan</th>
-        <th class="px-4 py-3 text-left">Tanggal ke Pemetaan</th>
-        <th class="px-4 py-3 text-left">Keterangan</th>
-        <th class="px-4 py-3 text-left">Tanggal Penyelesaian</th>
-      </tr>
-    </thead>
-    <tbody class="bg-white divide-y divide-gray-200">
-      <tr
-        v-for="item in alihMediaSelesai"
-        :key="item.id"
-        class="hover:bg-gray-50"
-      >
-        <td class="px-4 py-2 whitespace-nowrap">{{ item.jenis_hak }}</td>
-        <td class="px-4 py-2">{{ item.no_sertifikat }}</td>
-        <td class="px-4 py-2">{{ item.kecamatan?.nama_kecamatan }}</td>
-        <td class="px-4 py-2">{{ item.kelurahan?.nama_kelurahan }}</td>
-        <td class="px-4 py-2">{{ item.nama_pemohon || '-' }}</td>
-        <td class="px-4 py-2">{{ item.petugas_pemetaan || '-' }}</td>
-        <td class="px-4 py-2">{{ item.tanggal_pemetaan || '-' }}</td>
-        <td class="px-4 py-2 text-green-700 font-semibold">{{ item.keterangan }}</td>
-        <td class="px-4 py-2">{{ item.tanggal_penyelesaian || '-' }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  <!-- Penyelesaian Alih Media -->
+  <h2 class="text-base font-semibold mt-8">📦 Penyelesaian Alih Media</h2>
+    <div class="overflow-x-auto">
+    <table class="min-w-full mt-4 text-sm shadow rounded-lg overflow-hidden mx-auto w-fit">
+      <thead class="thead-alih">
+        <tr>
+          <th class="px-4 py-3 text-left">Jenis Hak</th>
+          <th class="px-4 py-3 text-left">No Sertifikat</th>
+          <th class="px-4 py-3 text-left">Kecamatan</th>
+          <th class="px-4 py-3 text-left">Kelurahan</th>
+          <th class="px-4 py-3 text-left">Tanggal</th>
+          <th class="px-4 py-3 text-left">Status</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <tr v-for="item in alihMediaSelesai" :key="item.id" class="hover:bg-gray-50">
+          <td class="px-4 py-2 whitespace-nowrap">{{ item.jenis_hak }}</td>
+          <td class="px-4 py-2">{{ item.no_sertifikat }}</td>
+          <td class="px-4 py-2">{{ item.kecamatan.nama_kecamatan }}</td>
+          <td class="px-4 py-2">{{ item.kelurahan.nama_kelurahan }}</td>
+          <td class="px-4 py-2">{{ item.tanggal_penyelesaian }}</td>
+          <td class="px-4 py-2 text-green-700 font-semibold">Selesai</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
 
 
@@ -113,6 +103,23 @@ const selectedApp = ref('')
 const router = useRouter()
 const loketSelesai = ref([])
 const alihMediaSelesai = ref([])
+const rekapJenis = ref([])
+const rekapPetugas = ref([])
+const rekapPemetaan = ref([])
+const chartData = ref([])
+const chartAlihMedia = ref([])
+
+onMounted(async () => {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) {
+    router.push('/login') // Kembali ke login kalau belum login
+  }
+})
+
+
+const totalPermohonan = computed(() =>
+  rekapJenis.value.reduce((sum, j) => sum + j.total, 0)
+)
 
 const navigateApp = () => {
   if (selectedApp.value === 'rutin') {
@@ -122,43 +129,41 @@ const navigateApp = () => {
   }
 }
 
-const rekapJenis = ref([])
-const rekapPetugas = ref([])
-const rekapPemetaan = ref([])
-const chartData = ref([])
-const chartAlihMedia = ref([])
-
-const totalPermohonan = computed(() =>
-  rekapJenis.value.reduce((sum, j) => sum + j.total, 0)
-)
-
-// Tambahan total selesai & total keseluruhan
-const totalSelesai = computed(() =>
-  loketSelesai.value.length + alihMediaSelesai.value.length
-)
-
-const totalSelesaiRutin = computed(() => loketSelesai.value.length)
-const totalSelesaiAlihMedia = computed(() => alihMediaSelesai.value.length)
-
-const totalSemua = computed(() =>
-  rekapJenis.value.reduce((sum, j) => sum + j.total, 0) +
-  chartAlihMedia.value.reduce((sum, j) => sum + j.jumlah, 0)
-)
-
 onMounted(async () => {
+  // Cek session login
+  const { data: { session }, error } = await supabase.auth.getSession()
+
+  if (!session || error) {
+    router.push('/login')
+    return
+  }
+
   const { data: loket } = await supabase.from('loket').select('*')
 
   const jenisMap = {}
   const harianMap = {}
   const petugasMap = {}
   const pemetaanMap = {}
+  const fetchUser = async () => {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) {
+    router.push('/login')
+  }
+}
+const router = useRouter()
+
+onMounted(async () => {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) {
+    router.push('/login') // kalau belum login, lempar ke /login
+  }
+})
 
   loket.forEach(item => {
     const jenis = item.jenis_permohonan || 'Tidak diketahui'
     const tanggal = item.tanggal?.slice(0, 10)
     const petugas = item.nama_petugas || 'Tidak Diisi'
     const pemetaan = item.petugas_pemetaan || 'Tidak Diisi'
-
     const isSelesai = Object.values(item).every(v => v !== null && v !== '')
 
     if (!jenisMap[jenis]) {
@@ -184,6 +189,7 @@ onMounted(async () => {
   rekapPemetaan.value = Object.entries(pemetaanMap).map(([nama, jumlah]) => ({ nama, jumlah }))
   chartData.value = Object.entries(harianMap).map(([tanggal, jumlah]) => ({ tanggal, jumlah }))
 
+  // Ambil data alih media
   const { data: alihMedia } = await supabase
     .from('alih_media')
     .select(`
@@ -192,6 +198,7 @@ onMounted(async () => {
       kelurahan: kelurahan_id ( nama_kelurahan )
     `)
 
+  // Hitung chart alih media per tanggal
   const alihMediaMap = {}
   alihMedia.forEach(item => {
     const tanggal = item.tanggal_penyelesaian?.slice(0, 10)
@@ -202,7 +209,7 @@ onMounted(async () => {
   })
   chartAlihMedia.value = Object.entries(alihMediaMap).map(([tanggal, jumlah]) => ({ tanggal, jumlah }))
 
-  // Tambahan filter data selesai
+  // Filter data selesai
   loketSelesai.value = loket.filter(item =>
     Object.values(item).every(v => v !== null && v !== '')
   )
@@ -212,13 +219,12 @@ onMounted(async () => {
     item.no_sertifikat &&
     item.kecamatan?.nama_kecamatan &&
     item.kelurahan?.nama_kelurahan &&
-    item.tanggal_penyelesaian &&
-    item.keterangan?.toLowerCase() === 'selesai'
+    item.tanggal_penyelesaian
   )
 
   await nextTick()
 
-  // Pie Chart
+  // Pie chart per jenis permohonan
   rekapJenis.value.forEach((item, index) => {
     const ctx = document.getElementById(`pieChart-${index}`)
     if (item.total > 0 && ctx) {
@@ -286,6 +292,10 @@ onMounted(async () => {
       plugins: { legend: { display: false } }
     }
   })
+  definePageMeta({
+  middleware: 'auth'
+})
+
 
   // Grafik Petugas Pemetaan
   const ctxPemetaan = document.getElementById('chartPemetaan')
@@ -321,8 +331,7 @@ onMounted(async () => {
       datasets: [{
         label: 'Jumlah Data Terkirim',
         data: chartAlihMedia.value.map(d => d.jumlah),
-        borderColor: '#8B0000',
-        backgroundColor: '#00000022',
+        borderColor: '#FFA500',
         fill: true,
         tension: 0.4
       }]
@@ -330,8 +339,7 @@ onMounted(async () => {
     options: {
       scales: {
         y: { beginAtZero: true }
-      },
-      plugins: { legend: { display: false } }
+      }
     }
   })
 })

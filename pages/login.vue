@@ -1,50 +1,50 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { supabase } from '@/plugins/supabase';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from '@/plugins/supabase'
 
-const router = useRouter();
-const email = ref('');
-const password = ref('');
-const errorMessage = ref('');
-const showError = ref(false);
-const blurAmount = ref(5); // Nilai blur yang bisa diubah
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const errorMessage = ref('')
+const showError = ref(false)
+const blurAmount = ref(5)
 
 const login = async () => {
   if (!email.value || !password.value) {
-    return;
+    errorMessage.value = "Email dan password wajib diisi."
+    showError.value = true
+    return
   }
 
   try {
     const { error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,
-    });
+    })
 
     if (error) {
-      errorMessage.value = "Email atau password salah.";
-      showError.value = true;
-      return;
+      errorMessage.value = "Email atau password salah."
+      showError.value = true
+      return
     }
 
-    router.push('/');
+    router.push('/')
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error:", error.message)
+    errorMessage.value = "Terjadi kesalahan saat login."
+    showError.value = true
   }
-};
-
-// Auto-login saat halaman dimuat
+}
 onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    router.push('/');
-  }
-});
+  await supabase.auth.signOut() // Paksa logout dulu saat buka login
+})
+
 </script>
 
 <template>
   <div class="login-wrapper">
-    <div class="login-container" :style="{ backdropFilter: `blur(${blurAmount.value}px)` }">
+    <div class="login-container" :style="{ backdropFilter: `blur(${blurAmount}px)` }">
       <img src="/assets/img/logo.png" alt="Company Logo" class="logo" />
       <input 
         v-model="email" 
@@ -63,9 +63,9 @@ onMounted(async () => {
       <button @click="login">Masuk</button>
       <p v-if="showError" class="error">{{ errorMessage }}</p>
     </div>
-    
-    <!-- Kontrol Blur yang berada di tengah -->
+
     <div class="blur-control">
+      <!-- Optional blur control -->
     </div>
   </div>
 </template>
@@ -78,18 +78,18 @@ onMounted(async () => {
   height: 100vh;
   background: url('/assets/img/login.jpg') no-repeat center center;
   background-size: cover;
-  flex-direction: column; /* Agar elemen di dalam wrapper terpusat secara vertikal */
+  flex-direction: column;
 }
 
 .login-container {
-  background: rgba(255, 255, 255, 0.3); /* Transparan */
+  background: rgba(255, 255, 255, 0.3);
   padding: 40px;
   border-radius: 50px;
   text-align: center;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   max-width: 380px;
   width: 100%;
-  backdrop-filter: blur(5px); /* Efek blur pada background */
+  backdrop-filter: blur(5px);
 }
 
 .logo {
@@ -140,17 +140,11 @@ button:hover {
   font-size: 14px;
 }
 
-/* Styling untuk kontrol blur */
 .blur-control {
   margin-top: 20px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-#blur-slider {
-  width: 200px;
-  margin-bottom: 10px;
 }
 </style>

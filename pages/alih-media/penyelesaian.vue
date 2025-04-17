@@ -19,6 +19,10 @@
     />
     </div>
 
+    <div class="action-buttons" style="text-align: right; margin-bottom: 10px;">
+  <button @click="exportToExcel" class="export-btn">📥 Download Excel</button>
+</div>
+
 
     <!-- Tabel Data Penyelesaian -->
     <div class="container">
@@ -72,36 +76,35 @@
     </div>
 
     <!-- Popup Edit Penyelesaian -->
-    <div v-if="showPopup" class="popup-overlay">
-      <div class="popup">
-        <h2><strong>Edit Penyelesaian</strong></h2>
-        
-        <!-- Dropdown Keterangan dari Supabase -->
-        <label><strong>Keterangan</strong></label>
-        <select v-model="editItem.keterangan_id">
-        <option disabled value="">Pilih Keterangan</option>
-        <option
-            v-for="option in keteranganOptions"
-            :key="option.id"
-            :value="option.id"
-        >
-            {{ option.keterangan }}
-        </option>
-        </select>
+    <!-- Popup Edit Penyelesaian -->
+<div v-if="showPopup" class="popup-overlay">
+  <div class="popup">
+    <h3>Edit Penyelesaian</h3>
 
+    <!-- Dropdown Keterangan -->
+    <label><strong>Keterangan</strong></label>
+    <select v-model="editItem.keterangan_id">
+      <option disabled value="">Pilih Keterangan</option>
+      <option
+        v-for="option in keteranganOptions"
+        :key="option.id"
+        :value="option.id"
+      >
+        {{ option.keterangan }}
+      </option>
+    </select>
 
+    <!-- Input Tanggal -->
+    <label><strong>Tanggal Penyelesaian</strong></label>
+    <input v-model="editItem.tanggal_penyelesaian" type="date" />
 
-  
-        <label><strong>Tanggal Penyelesaian</strong></label>
-        <!-- Jika belum diisi, input tetap kosong -->
-        <input v-model="editItem.tanggal_penyelesaian" type="date" placeholder=""/>
-  
-        <div class="popup-actions">
-          <button @click="saveEdit">Simpan</button>
-          <button @click="showPopup = false">Batal</button>
-        </div>
-      </div>
+    <!-- Tombol Aksi -->
+    <div class="popup-actions">
+      <button @click="saveEdit">Simpan</button>
+      <button @click="showPopup = false">Batal</button>
     </div>
+  </div>
+</div>
 
   </div>
 </template>
@@ -109,6 +112,33 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from '@/plugins/supabase'
+import * as XLSX from 'xlsx';
+
+const exportToExcel = () => {
+  if (filteredData.value.length === 0) {
+    alert('Tidak ada data untuk diekspor.');
+    return;
+  }
+
+  const data = filteredData.value.map(item => ({
+    "Jenis Hak": item.jenis_hak || '',
+    "No Sertifikat": item.no_sertifikat || '',
+    "Kecamatan": item.kecamatan?.nama_kecamatan || '',
+    "Kelurahan": item.kelurahan?.nama_kelurahan || '',
+    "Nama Pemohon": item.nama_pemohon || '',
+    "Petugas Pemetaan": item.petugas_pemetaan?.nama || '',
+    "Tanggal Ke Pemetaan": (item.tanggal_pemetaan) || '',
+    "Keterangan": item.keterangan_relasi?.keterangan  || '',
+    "Tanggal Penyelesaian": item.tanggal_penyelesaian || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Data Penyelesaian");
+
+  XLSX.writeFile(workbook, "data_penyelesaian.xlsx");
+};
+
 
 const alihMediaData = ref([])
 const jenisHakList = ref([])
@@ -333,62 +363,91 @@ tbody tr:hover {
 }
 
 /* Popup */
+/* Popup Overlay */
 .popup-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 999;
 }
 
+/* Popup Box */
 .popup {
-  background: white;
-  padding: 25px;
-  border-radius: 10px;
-  width: 400px;
-  max-width: 100%;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 350px; /* Diperkecil dari 400px */
+  max-width: 90%;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  text-align: left;
 }
 
+/* Input & Select dalam Popup */
 .popup input,
 .popup select {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 15px;
+  padding: 6px 10px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 
+/* Label dalam Popup */
 .popup label {
-  display: block;
   margin-bottom: 5px;
+  display: block;
+  font-size: 14px;
 }
 
-/* Popup Actions */
+.export-btn {
+  background-color: #2e4259;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  background-color: #4e317c;
+}
+
+/* Tombol Aksi */
 .popup-actions {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .popup-actions button {
   flex: 1;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  color: #fff;
+  padding: 8px;
+  font-size: 14px;
   font-weight: bold;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  margin: 0 5px;
 }
 
 .popup-actions button:first-child {
-  background-color: #2980b9;
+  background-color: #3498db;
 }
 
 .popup-actions button:last-child {
   background-color: #e74c3c;
+
 }
+
 
 .search-container {
   text-align: center;
